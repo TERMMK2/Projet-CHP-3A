@@ -15,6 +15,6 @@ std::vector<double> vectorsplit(std::vector<double> u);
 
 void Diag_init(int nx, int ny, std::vector<std::vector<double> >& A);
 
-std::vector<double> CGPara (std::vector<std::vector<double> > Aloc, std::vector<double> bloc, std::vector<double> x0loc , double err, int kmax, int nx, int ny);
+std::vector<double> CG (std::vector<std::vector<double> > Aloc, std::vector<double> bloc, std::vector<double> x0loc , double err, int kmax, int nx, int ny);
 
 void printvect( std::vector<double> uloc);

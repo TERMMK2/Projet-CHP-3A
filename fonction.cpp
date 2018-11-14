@@ -20,205 +20,50 @@ void charge(int N, int Np, int Me, int& i1, int& iN)
 
 
 
-std::vector<double> prodMVC(std::vector<std::vector<double> > Aloc, std::vector<double> xloc, int nx, int ny)
+std::vector<double> prodMVC(std::vector<std::vector<double> > A, std::vector<double> x, int Nx, int Ny)
 {
-  int N, i1, iN, Me, Np;
-  N = nx*ny;
-  std::vector<double> x_haut, x_bas, yloc; //x_haut contient les éléments voisins du dessus et x_bas ceux du dessous.
-  x_bas.resize(nx);
-  x_haut.resize(nx);
 
-
-  MPI_Status status;
-  MPI_Comm_size(MPI_COMM_WORLD, &Np); 
-  MPI_Comm_rank(MPI_COMM_WORLD, &Me);
-
-  charge(N,Np,Me,i1,iN);
-
-  int Nloc = iN-i1+1;
-	
-
-  if (Me%2 == 0) // Comme chacun des procs doit envoyer et recevoir un message, pour éviter que tout le monde soit bloqué en phase d'envoi sans pouvoir recevoir les messages des autres, on dit que les procs de rang pair envoient et que les autres reçoivent
-  {
-    if (Me != Np-1)
-    {
-      MPI_Send(&xloc[Nloc-nx],nx,MPI_DOUBLE,Me+1,100,MPI_COMM_WORLD);
-    }
-    if (Me != 0)
-    {
-      MPI_Send(&xloc[0],nx,MPI_DOUBLE,Me-1,100,MPI_COMM_WORLD);
-    }
-  }
-  else
-  {
-    MPI_Recv(&x_haut[0],nx,MPI_DOUBLE,Me-1,100,MPI_COMM_WORLD, &status);
-    if (Me != Np-1)
-    {
-      MPI_Recv(&x_bas[0],nx,MPI_DOUBLE,Me+1,100,MPI_COMM_WORLD, &status);
-    }
-  }
-
-  if (Me%2 == 1) //Ensuite on fait le contraire, les rangs impairs envoient, les autres reçoivent
-  {
-    if (Me != Np-1)
-    {
-      MPI_Send(&xloc[Nloc-nx],nx,MPI_DOUBLE,Me+1,100,MPI_COMM_WORLD);
-    }
-    MPI_Send(&xloc[0],nx,MPI_DOUBLE,Me-1,100,MPI_COMM_WORLD);
-  }
-  else
-  {
-    if (Me != 0)
-    {
-      MPI_Recv(&x_haut[0],nx,MPI_DOUBLE,Me-1,100,MPI_COMM_WORLD, &status);
-    }
-    if (Me != Np-1)
-    {
-      MPI_Recv(&x_bas[0],nx,MPI_DOUBLE,Me+1,100,MPI_COMM_WORLD, &status);
-    }
-  }
-
-
+  int N = Nx*Ny;
+  std::vector<double> y; //x_haut contient les éléments voisins du dessus et x_bas ceux du dessous.
 
 
   //Calcul local de Y
 
-  yloc.resize(iN-i1+1);
+  y.resize(N);
 
-  for (int i =0 ; i < iN-i1+1; i++)
+  for (int i =0 ; i < N; i++)
   {
-    yloc[i] = 0;
-    yloc[i] += Aloc[2][i]*xloc[i];
-    if (Me == 0) //Pas de voisin en haut sur la première ligne
-    {
-      if (i == 0) //pas de voisin à gauche
-      {
-        yloc[i] += Aloc[3][i]*xloc[i+1];
-      }
-      else if (i == iN - i1) //voisin à droite dans x_bas
-      {
-        yloc[i] += Aloc[1][i]*xloc[i-1] + Aloc[3][i]*x_bas[0];
-      }
-      else //voisins gauche et droite dans xloc
-      {
-        yloc[i] += Aloc[1][i]*xloc[i-1] + Aloc[3][i]*xloc[i+1];
-      }
+    y[i] = 0;
 
-
-      if (i < iN-i1+1-nx) //voisin du bas dans xloc
-      {
-        yloc[i] += Aloc[4][i]*xloc[i+nx];
-      }
-      else //voisin du bas dans x_bas
-      {
-        yloc[i] += Aloc[4][i]*x_bas[i - (iN-i1-nx+1)];
-      }
-
-
-      if (i >= nx) //voisin du haut dans xloc à partir de la deuxième ligne
-      {
-        yloc[i] += Aloc[0][i]*xloc[i-nx];
-      }
-    }
-
-
-    else if (Me == Np-1) //Pas de voisin en bas sur la dernière ligne
-    {
-      if (i == iN - i1) //pas de voisin à droite
-      {
-        yloc[i] += Aloc[1][i]*xloc[i-1];
-      }
-      else if (i == 0) //voisin à gauche dans x_haut
-      {
-        yloc[i] += Aloc[3][i]*xloc[i+1] + Aloc[1][i]*x_haut[nx-1];
-      }
-      else //voisins gauche et droite dans xloc
-      {
-        yloc[i] += Aloc[1][i]*xloc[i-1] + Aloc[3][i]*xloc[i+1];
-      }
-
-
-      if (i < iN-i1+1-nx) //voisin du bas dans xloc
-      {
-        yloc[i] += Aloc[4][i]*xloc[i+nx];
-      }
-
-
-      if (i >= nx) //voisin du haut dans xloc à partir de la deuxième ligne
-      {
-        yloc[i] += Aloc[0][i]*xloc[i-nx];
-      }
-      else //voisin du haut dans x_haut
-      {
-        yloc[i] += Aloc[0][i]*x_haut[i];
-      }
-    }
-
-
-    else //Cas général
-    {
-      if (i == 0) //voisin à gauche dans x_haut
-      {
-        yloc[i] += Aloc[1][i]*x_haut[nx-1] + Aloc[3][i]*xloc[i+1];
-      }
-      else if (i == iN - i1) //voisin à droite dans x_bas
-      {
-        yloc[i] += Aloc[1][i]*xloc[i-1] + Aloc[3][i]*x_bas[0];
-      }
-      else //voisins gauche et droite dans xloc
-      {
-        yloc[i] += Aloc[1][i]*xloc[i-1] + Aloc[3][i]*xloc[i+1];
-      }
-
-
-      if (i < iN-i1+1-nx) //voisin du bas dans xloc
-      {
-        yloc[i] += Aloc[4][i]*xloc[i+nx];
-      }
-      else //voisin du bas dans x_bas
-      {
-        yloc[i] += Aloc[4][i]*x_bas[i - (iN-i1-nx+1)];
-      }
-
-
-      if (i >= nx) //voisin du haut dans xloc
-      {
-        yloc[i] += Aloc[0][i]*xloc[i-nx];
-      }
-      else //voisin du haut dans x_haut
-      {
-        yloc[i] += Aloc[0][i]*x_haut[i];
-      }
-    }
-
-
+    y[i] += A[0][i]*x[i-Nx];
+    y[i] += A[1][i]*x[i-1];
+    y[i] += A[2][i]*x[i];
+    y[i] += A[3][i]*x[i+1];
+    y[i] += A[4][i]*x[i+Nx];
   }
-  return yloc;
+    
+  return y;
 }
 
-double dot(std::vector<double> uloc, std::vector<double> vloc) 
+double dot(std::vector<double> u, std::vector<double> v) 
 {
-  // //Calcul le produit scalaire entre 2 vecteurs et envoie le résultat à tous les processeurs.
+  // //Calcul le produit scalaire entre 2 vecteurs.
 
+  int N = u.size();
+  double y;
 
-  int Nloc = uloc.size();
-  double y,yloc;
-
-  //Calcul d'une partie de y
-  yloc = 0;
-  for (int i=0; i<Nloc; i++)
+  y = 0;
+  for (int i=0; i<N; i++)
   {
-    yloc += uloc[i]*vloc[i];
+    y += u[i]*v[i];
   }
-
-  MPI_Allreduce(&yloc,&y,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
 
   return y;
 }
 
 
 
-
+// A virer potentiellement
 std::vector<double> vectorsplit(std::vector<double> u)
 {
   // //Permet de "découper" un vecteur global en vecteurs locaux.
@@ -267,74 +112,66 @@ void Diag_init(int nx, int ny, std::vector<std::vector<double> >& A)
       A[3][i]=4;
       A[4][i]=5;
 
-  //     if (i%nx==0)
-	// A[1][i]=0.;
-  //
-  //     if (i%(nx-1)==0)
-	// A[3][i]=0.;
-  //
-  //     if(i<nx)
-	// A[0][i]=0.;
-  //
-  //     if(i>(ny-1)*nx-1)
-	// A[4][i]=0.;
+      if (i%nx==0)
+	A[1][i]=0.;
+  
+      if (i%(nx-1)==0)
+	A[3][i]=0.;
+  
+      if(i<nx)
+	A[0][i]=0.;
+  
+      if(i>(ny-1)*nx-1)
+	A[4][i]=0.;
     }
 }
 
-std::vector<double> CGPara (std::vector<std::vector<double> > Aloc, std::vector<double> bloc, std::vector<double> x0loc , double err, int kmax, int nx, int ny)
+std::vector<double> CG (std::vector<std::vector<double> > A, std::vector<double> b, std::vector<double> x0 , double err, int kmax, int nx, int ny)
 {
   // // Algorithme du gradient conjugué parallèle qui prend en argument uniquement des vecteurs locaux et renvoie un vecteur local.
 
-  int i1, iN, Nloc, k, Me, Np;
+  int k =0;
 
   double norm_r, nr_carre, nr2_carre;
-  std::vector<double> wloc, rloc, r_1loc, ploc, dloc, xloc;
+  std::vector<double> w, r, r_1, p, d, x;
 
-  MPI_Status status;
-  MPI_Comm_size(MPI_COMM_WORLD, &Np); // get totalnodes
-  MPI_Comm_rank(MPI_COMM_WORLD, &Me);
+  int N = nx*ny;
 
-  charge(nx*ny,Np,Me,i1,iN);
+  w.resize(N); r.resize(N); p.resize(N); d.resize(N);
 
-  Nloc = iN-i1 +1;
+  x = x0;
 
-  wloc.resize(Nloc); rloc.resize(Nloc); ploc.resize(Nloc); dloc.resize(Nloc);
+  w = prodMVC(A,x,nx,ny);
 
-  xloc = x0loc;
-
-  wloc = prodMVC(Aloc,xloc,nx,ny);
-
-  for (int i = 0; i < Nloc; i++)
+  for (int i = 0; i < N; i++)
   {
-    rloc[i] = bloc[i] - wloc[i];
+    r[i] = b[i] - w[i];
   }
-  ploc = rloc;
+  p = r;
 
-  k = 0;
-
-  nr_carre = dot(rloc,rloc);
+  nr_carre = dot(r,r);
   norm_r = sqrt(nr_carre); //On stocke ces deux variables puisqu'on s'en sert toutes les deux plusieurs fois dans la suite
 
 
   while ((norm_r > err) and (k<kmax))
     {
-      dloc = prodMVC(Aloc,ploc,nx,ny);
+      d = prodMVC(A,p,nx,ny);
 
-      double alpha = nr_carre/dot(ploc,dloc);
+      double alpha = nr_carre/dot(p,d);
 
-      for (int i = 0; i < Nloc; i++)
+      for (int i = 0; i < N; i++)
       {
-        xloc[i] += alpha*ploc[i];
-        rloc[i] -= alpha*dloc[i]; //rk devient r(k+1)
+        x[i] += alpha*p[i];
+        r[i] -= alpha*d[i]; //rk devient r(k+1)
       }
 
-      nr2_carre = dot(rloc,rloc); //norme de r(k+1)
+      nr2_carre = dot(r,r); //norme de r(k+1)
 
       double beta = nr2_carre/nr_carre;
 
-      for (int i = 0; i < Nloc; i++)
+      for (int i = 0; i < N; i++)
       {
-        ploc[i] = rloc[i] + beta*ploc[i];
+        p[i] = r[i] + beta*p[i];
       }
 
       nr_carre = nr2_carre;
@@ -343,10 +180,12 @@ std::vector<double> CGPara (std::vector<std::vector<double> > Aloc, std::vector<
       k++;
     }
 
-  return xloc;
+  return x;
 
 }
 
+
+// On s'en fout pour l'instant mais ça peut être utile
 void printvect(std::vector<double> uloc)
 {
   // // Fonction qui permet d'afficher les composante d'un vecteur global en gardant la configuration locale. Cette fonction n'est plus utilisée dans le code mais nous a permis de le débugger.
