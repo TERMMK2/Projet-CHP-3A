@@ -39,7 +39,7 @@ int main(int argc, char * argv[])
 
   double Val_CL_bas = 0; //Il sagit de la valeur du Flux si CL_bas == "Neumann", ou de la Température si CL_bas == "Dirichlet"
   double Val_CL_haut = 0;
-  double Val_CL_gauche = 0; 
+  double Val_CL_gauche = 0;
   double Val_CL_droite = 0;
 
 
@@ -47,15 +47,15 @@ int main(int argc, char * argv[])
 
   int nb_iterations = int(ceil(tfinal/deltaT));
 
-  string Source = "non"; //Peut prendre comme valeur "non", "polynomial", "trigonometrique" ou "instationnaire". 
+  string Source = "non"; //Peut prendre comme valeur "non", "polynomial", "trigonometrique" ou "instationnaire".
   //Choisir trigonométrique met à jour les conditions limites automatiquement.
 
   double CI = 293.;
 
-  
+
   string save_all_file = "TER"; //Mettre "non" si on ne souhaite pas enregistrer la solution globale au cours du temps sous une forme lisible par paraview
-  
-  string save_points_file = "points_TER"; //Mettre non si on ne veut pas sauvegarder la température au cours du temps en des points paritculiers 
+
+  string save_points_file = "points_TER"; //Mettre non si on ne veut pas sauvegarder la température au cours du temps en des points paritculiers
   int number_saved_points=3;
   vector<vector <double> > saved_points;
   saved_points.resize(number_saved_points);
@@ -66,7 +66,7 @@ int main(int argc, char * argv[])
       saved_points[i][1] = 0.0025;
     }
 
-  
+
   Laplacian2D *Lap;
   Lap = new EC_ClassiqueP();
 
