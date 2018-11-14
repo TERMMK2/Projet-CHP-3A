@@ -95,6 +95,7 @@ void EC_ClassiqueP::InitializeMatrix()
   vector<vector <double> > LapMat;
   LapMat.resize(5);
   int N = _Nx*_Ny;
+  // _Ny à changer en _Nyloc ( et de même pour _Nx dans les cas exotiques)
 
   double alpha = 1 + 2*_a*_deltaT/(_h_x*_h_x) + 2*_a*_deltaT/(_h_y*_h_y);
   double beta = -_a*_deltaT/(_h_x*_h_x);

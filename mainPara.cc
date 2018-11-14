@@ -23,6 +23,8 @@ int main(int argc, char * argv[])
   int Nx = 500;
   int Ny = 10;
 
+  // Truc machin biduletest
+
   double xmin = 0.;
   double xmax = 0.04;
   double ymin = 0.;
