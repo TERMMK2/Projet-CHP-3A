@@ -10,7 +10,7 @@ Laplacian2D::Laplacian2D()
 Laplacian2D::~Laplacian2D()
 {}
 
-void Laplacian2D::Initialize(double x_min, double x_max, double y_min, double y_max, int Nx, int Ny, double a, double deltaT, int Me, int Np, string Source, string save_all_file, string save_points_file, int number_saved_points, vector< vector<double> > saved_points)
+void Laplacian2D::Initialize(double x_min, double x_max, double y_min, double y_max, int Nx, int Ny, double a, double deltaT, int Me, int Np, string Source, int chevauchement, string save_all_file, string save_points_file, int number_saved_points, vector< vector<double> > saved_points)
 {
   // // On  initialise les constantes connues de tous les processeurs.
 
@@ -27,6 +27,7 @@ void Laplacian2D::Initialize(double x_min, double x_max, double y_min, double y_
   _Me = Me;
   _Np = Np;
   _Source = Source;
+  _chevauchement = chevauchement;
   _save_all_file = save_all_file;
   _save_points_file = save_points_file;
   _number_saved_points = number_saved_points;
@@ -38,6 +39,9 @@ void Laplacian2D::Initialize(double x_min, double x_max, double y_min, double y_
       system(("mkdir -p ./"+_save_all_file).c_str());
     }
   
+  //à modifier potentiellement pour savesol et save_points
+
+
 }
 
 void Laplacian2D::InitializeCI(double CI)
@@ -69,6 +73,11 @@ void Laplacian2D::InitializeCL(std::string CL_bas, std::string CL_haut, std::str
   _Val_CL_haut = Val_CL_haut;
   _Val_CL_gauche = Val_CL_gauche;
   _Val_CL_droite = Val_CL_droite;
+
+  
+
+
+
 }
 
 void Laplacian2D::UpdateCL(int num_it)
@@ -187,14 +196,16 @@ void EC_ClassiqueP::IterativeSolver (int nb_iterations)
   MPI_Status status;
 
   int i1,iN;
-  charge(_Nx*_Ny,_Np,_Me,i1,iN);
-  int Nloc = iN-i1 +1;
+  charge(_Ny,_Np,_Me,i1,iN);
+  int Nyloc = iN-i1+1;
 
   //Sauvegarde d'un points ou plusieurs points particuliers au cours du temps:------------------------------------------------------------------------------------
+  // à voir plus tard
+
   ofstream* flux_pts(new ofstream);
   vector<double> _sol;
 
-  if(_save_points_file != "non")
+  if(_save_points_file != "non")// à refaire (besoin de savoir dans quel proc est le point pour l'enregistrer)
     {
       //Si on sauvegarde des points en particulier, on initialise l'ouverture des fichiers ici.
       flux_pts->open(_save_points_file+".txt", ios::out);
@@ -206,9 +217,9 @@ void EC_ClassiqueP::IterativeSolver (int nb_iterations)
   for( int i=0 ; i<=nb_iterations ; i++)
     {
       if (_save_all_file != "non")
-	EC_ClassiqueP::SaveSol(_save_all_file+"/sol_it_"+to_string(i)+".vtk"); // -> partage solloc avec le processeur 0 pour qu'il puisse écrire la solution dans un fichier .vtk
+	EC_ClassiqueP::SaveSol(_save_all_file+"/sol_it_"+to_string(i)+".vtk"); // Besoin de refaire ça aussi (écrire dans des fichiers différents ou tout regrouper sur un proc et écrire dans un seul fichier) à voir après
      
-      if ((_save_points_file != "non") and (_Me == 0))
+      if ((_save_points_file != "non") and (_Me == 0)) //à voir après
 	{
       
 	  for (int i=0; i<=iN; i++)
@@ -234,13 +245,13 @@ void EC_ClassiqueP::IterativeSolver (int nb_iterations)
 	    }
 
 	  *flux_pts<<i*_deltaT<<" ";
-	   //char* truc = new char;
-	   for (int j=0; j<_number_saved_points; j++)
-	     {
-	       int pos = floor(_saved_points[j][0]/_h_x) + _Nx*floor(_saved_points[j][1]/_h_y);
-	       *flux_pts<<_sol[pos]<<" ";
-	     }
-	   *flux_pts<<endl;	  
+	  //char* truc = new char;
+	  for (int j=0; j<_number_saved_points; j++)
+	    {
+	      int pos = floor(_saved_points[j][0]/_h_x) + _Nx*floor(_saved_points[j][1]/_h_y);
+	      *flux_pts<<_sol[pos]<<" ";
+	    }
+	  *flux_pts<<endl;	  
 	}
       if ((_save_points_file != "non") and (_Me != 0))
 	{
@@ -249,7 +260,7 @@ void EC_ClassiqueP::IterativeSolver (int nb_iterations)
 
       EC_ClassiqueP::ConditionsLimites(i); 
       //--------------------------------------------------------------------------
-      //Prise en compte du terme source :
+      //Prise en compte du terme source : à voir après
       for (int k=0 ; k < Nloc ;k++)
 	{
 	  int num = i1 + k;
@@ -278,9 +289,33 @@ void EC_ClassiqueP::IterativeSolver (int nb_iterations)
 	}
       
       //------------------------------------------------------------------------
-      int kmax = _Nx*_Ny +100; //Pour une matrice de taille n le GC met max n étapes en théorie, comme on veut être sûr qu'il converge on prend une petite marge
       
-      _solloc = CGPara(_LapMatloc,_floc,_solloc,0.0000001,kmax,_Nx,_Ny);
+      std::vector<double> frontiere_haut;
+      std::vector<double> frontiere_bas;
+      frontiere_haut.resize(Nx);
+      frontiere_bas.resize(Nx);
+
+      if(Me==0)
+	{
+	  MPI_Send(&_solloc[(iN-1)*_Nx],_Nx,MPI_DOUBLE,1,100*_Me,MPI_COMM_WORLD);
+	  MPI_Recv(&frontiere[0],he_iN-he_i1+1,MPI_DOUBLE,he,100*he,MPI_COMM_WORLD, &status);
+	}
+
+      
+
+
+
+
+      int kmax = _Nx*Ny_loc +100; //Pour une matrice de taille n le GC met max n étapes en théorie, comme on veut être sûr qu'il converge on prend une petite marge
+      _solloc = CG(_LapMatloc,_floc,_solloc,0.0000001,kmax,_Nx,Nyloc);
+
+
+
+
+
+
+      
+
 
       if (_Me == 0)//Barre de chargement
 	{
@@ -314,7 +349,7 @@ void EC_ClassiqueP::IterativeSolver (int nb_iterations)
 
 void Laplacian2D::SaveSol(string name_file)
 {
-  // // Cette méthode est celle qui nous permet d'enregistrer la solution sous forme de fichier lisible par paraview. Pour cela, elle envoie tout les vecteurs locaux solloc vers le processeur 0, qui va se charger de reformer le vecteur solution global puis d'écrire le résultat dans le bon format.
+  // À refaire complètement -> à voir
 
   MPI_Status status;
 
@@ -416,6 +451,8 @@ void Laplacian2D::SaveSol(string name_file)
 void EC_ClassiqueP::ConditionsLimites(int num_it)
 {
   // // Cette méthode nous permet de mettre à jours le terme source à chaque itération pour prendre en compte les effets des conditions limites.
+  // à mettre aussi à jour pour les CL entre les procs
+
 
   int i1,iN;
   double gamma = -_a*_deltaT/(_h_y*_h_y);

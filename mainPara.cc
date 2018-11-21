@@ -21,7 +21,7 @@ int main(int argc, char * argv[])
   MPI_Comm_rank(MPI_COMM_WORLD, &Me);
 
   int Nx = 500;
-  int Ny = 10;
+  int Ny = 500;
 
   // Truc machin biduletest
 
@@ -43,6 +43,8 @@ int main(int argc, char * argv[])
   double Val_CL_haut = 0;
   double Val_CL_gauche = 0;
   double Val_CL_droite = 0;
+
+  int chevauchement = 0; 
 
 
 
@@ -72,11 +74,27 @@ int main(int argc, char * argv[])
   Laplacian2D *Lap;
   Lap = new EC_ClassiqueP();
 
-// Initialisation de toutes les variables, ne pas toucher...
-  Lap->Initialize(xmin,xmax,ymin,ymax,Nx,Ny,a,deltaT, Me, Np, Source, save_all_file, save_points_file, number_saved_points, saved_points);
+// //Initialisation de toutes les variables, ne pas toucher...
+//  Lap->Initialize(xmin,xmax,ymin,ymax,Nx,Ny,a,deltaT, Me, Np, Source, save_all_file, save_points_file, number_saved_points, saved_points);
+//  Lap->InitializeCI(CI);
+//  Lap->InitializeCL(CL_bas, CL_haut, CL_gauche, CL_droite, Val_CL_bas, Val_CL_haut, Val_CL_gauche, Val_CL_droite);
+//  Lap->InitializeMatrix();
+
+  //-------------------------------------------------------------------------
+  int i1,iN;
+  charge(Ny,Np,Me,i1,iN);
+  int Nyloc = iN-i1 + 1;
+  
+  Lap->Initialize(xmin,xmax,ymin,ymax,Nx,Ny_loc,a,deltaT, Me, Np, Source, chevauchement, save_all_file, save_points_file, number_saved_points, saved_points);
   Lap->InitializeCI(CI);
-  Lap->InitializeCL(CL_bas, CL_haut, CL_gauche, CL_droite, Val_CL_bas, Val_CL_haut, Val_CL_gauche, Val_CL_droite);
+  Lap->InitializeCL(CL_bas, CL_haut, CL_gauche, CL_droite, Val_CL_bas, Val_CL_haut, Val_CL_gauche, Val_CL_droite); // Voir ça aussi 
   Lap->InitializeMatrix();
+  
+  
+
+
+
+  //-------------------------------------------------------------------------
 
 
   auto start = chrono::high_resolution_clock::now();
