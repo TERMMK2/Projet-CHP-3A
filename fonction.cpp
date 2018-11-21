@@ -186,7 +186,7 @@ std::vector<double> CG (std::vector<std::vector<double> > A, std::vector<double>
 
 
 // On s'en fout pour l'instant mais ça peut être utile
-void printvect(std::vector<double> uloc)
+void printvect(const std::vector<double>& uloc)
 {
   // // Fonction qui permet d'afficher les composante d'un vecteur global en gardant la configuration locale. Cette fonction n'est plus utilisée dans le code mais nous a permis de le débugger.
 
