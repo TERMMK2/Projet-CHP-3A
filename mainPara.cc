@@ -81,11 +81,9 @@ int main(int argc, char * argv[])
 //  Lap->InitializeMatrix();
 
   //-------------------------------------------------------------------------
-  int i1,iN;
-  charge(Ny,Np,Me,i1,iN);
-  int Nyloc = iN-i1 + 1;
   
-  Lap->Initialize(xmin,xmax,ymin,ymax,Nx,Ny_loc,a,deltaT, Me, Np, Source, chevauchement, save_all_file, save_points_file, number_saved_points, saved_points);
+  
+  Lap->Initialize(xmin,xmax,ymin,ymax,Nx,Ny,a,deltaT, Me, Np, Source, chevauchement, save_all_file, save_points_file, number_saved_points, saved_points);
   Lap->InitializeCI(CI);
   Lap->InitializeCL(CL_bas, CL_haut, CL_gauche, CL_droite, Val_CL_bas, Val_CL_haut, Val_CL_gauche, Val_CL_droite); // Voir ça aussi 
   Lap->InitializeMatrix();
