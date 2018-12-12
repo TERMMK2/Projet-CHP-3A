@@ -7,7 +7,8 @@
 #include <vector>
 #include <stdio.h>
 #include <math.h>
-#include "mpi.h"
+
+#include <mpi.h>
 #include "fonction.h"
 
 #ifndef M_PI
