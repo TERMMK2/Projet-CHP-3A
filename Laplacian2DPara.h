@@ -24,6 +24,7 @@ class Laplacian2D // pas fini de modifier
   protected: // Les attributs de la classe
     double _x_min, _x_max, _y_min, _y_max, _h_x, _h_y, _a, _deltaT;
     int _Nx, _Ny;
+    int _Nyloc; // Voir _Nxloc après.
     std::vector<std::vector<double> > _LapMatloc; // matrice creuse du laplacien
     std::vector<double> _floc; // vecteur source _f qui prend les données de _sol(i) pour calculer _sol(i+1)
     std::vector<double> _solloc; // vecteur solution U local
@@ -62,7 +63,9 @@ class Laplacian2D // pas fini de modifier
 
     void SaveSol(std::string name_file); // Écrit les solutions dans le fichier "name_file".
 
-    virtual void ConditionsLimites(int num_it) = 0;
+    virtual void UpdateSecondMembre(int num_it) = 0;
+
+    virtual void UpdateSchwartzCF(frontiere_haut, frontiere_bas) =0;
 
 };
 
@@ -74,5 +77,6 @@ class EC_ClassiqueP : public Laplacian2D
   public:
     void InitializeMatrix();
     void IterativeSolver(int nb_iterations);
-    void ConditionsLimites(int num_it);
+    void UpdateSecondMembre(int num_it);
+    void UpdateSchwartzCF(frontiere_haut, frontiere_bas);
 };

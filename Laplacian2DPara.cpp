@@ -34,27 +34,33 @@ void Laplacian2D::Initialize(double x_min, double x_max, double y_min, double y_
   _saved_points = saved_points;
 
   if (_save_all_file != "non") //On supprime l'ancien fichier qui contient les solutions au cours du temps et on en crée un nouveau
-  {
-    system(("rm -Rf " + _save_all_file).c_str());
-    system(("mkdir -p ./" + _save_all_file).c_str());
-  }
+    {
+      system(("rm -Rf "+_save_all_file).c_str());
+      system(("mkdir -p ./"+_save_all_file).c_str());
+    }
+
+
+  int i1,iN;
+  charge(_Ny,_Np,_Me,i1,iN);
+  _Nyloc = iN-i1 +1;
+ 
+  //à modifier potentiellement pour savesol et save_points
+
 }
 
 void Laplacian2D::InitializeCI(double CI)
 {
   // // On initialise le vecteur solution ici.
 
-  int i1, iN;
-  charge(_Nx * _Ny, _Np, _Me, i1, iN);
-
-  _solloc.resize(iN - i1 + 1);
-  for (int i = 0; i < iN - i1 + 1; i++)
-  {
-    _solloc[i] = CI;
-  }
+ 
+  _solloc.resize(_Nyloc);
+  for (int i=0; i<_Nyloc;i++)
+    {
+      _solloc[i] = CI;
+    }
 
   //On met _floc de la bonne taille ici  :
-  _floc.resize(iN - i1 + 1);
+  _floc.resize(_Nyloc);
 }
 
 void Laplacian2D::InitializeCL(CL CL_bas, CL CL_haut, CL CL_gauche, CL CL_droite, double Val_CL_bas, double Val_CL_haut, double Val_CL_gauche, double Val_CL_droite)
@@ -69,6 +75,7 @@ void Laplacian2D::InitializeCL(CL CL_bas, CL CL_haut, CL CL_gauche, CL CL_droite
   _Val_CL_haut = Val_CL_haut;
   _Val_CL_gauche = Val_CL_gauche;
   _Val_CL_droite = Val_CL_droite;
+
 }
 
 void Laplacian2D::UpdateCL(int num_it)
@@ -86,13 +93,15 @@ void Laplacian2D::UpdateCL(int num_it)
   }
 }
 
+
 void EC_ClassiqueP::InitializeMatrix()
 {
   // // On initialise la matrice pentadiagonale ici.
 
-  vector<vector<double>> LapMat;
+
+  vector<vector <double> > LapMat;
   LapMat.resize(5);
-  int N = _Nx * _Ny;
+  int Nloc = _Nx*_Nyloc;
   // _Ny à changer en _Nyloc ( et de même pour _Nx dans les cas exotiques)
 
   double alpha = 1 + 2 * _a * _deltaT / (_h_x * _h_x) + 2 * _a * _deltaT / (_h_y * _h_y);
@@ -103,37 +112,38 @@ void EC_ClassiqueP::InitializeMatrix()
   // double beta = 4;
   // double gamma = 5;
 
-  for (int i = 0; i < 5; i++)
-  {
-    LapMat[i].resize(N);
-  }
-
-  for (int i = 0; i < N; i++)
-  {
-    LapMat[0][i] = gamma;
-    LapMat[1][i] = beta;
-    LapMat[2][i] = alpha;
-    LapMat[3][i] = beta;
-    LapMat[4][i] = gamma;
-
-    if (i % _Nx == 0)
-      LapMat[1][i] = 0.;
-
-    if (i % _Nx == _Nx - 1)
-      LapMat[3][i] = 0.;
-
-    if (i < _Nx)
-      LapMat[0][i] = 0.;
-
-    if (i > (_Ny - 1) * _Nx - 1)
-      LapMat[4][i] = 0.;
-  }
-
-  if (_CL_gauche == CL::NEUMANN or _CL_gauche == CL::NEUMAN_NON_CONSTANT)
-  {
-    for (int i = 0; i < _Ny; i++)
+  for (int i=0; i<5; i++)
     {
-      LapMat[2][_Nx * i] += beta; //Bord gauche
+      LapMat[i].resize(Nloc);
+    }
+
+  for (int i=0; i<N; i++)
+    {
+      LapMat[0][i]=gamma;
+      LapMat[1][i]=beta;
+      LapMat[2][i]=alpha;
+      LapMat[3][i]=beta;
+      LapMat[4][i]=gamma;
+
+      if (i%_Nx==0)
+	LapMat[1][i]=0.;
+
+      if (i%_Nx==_Nx-1)
+	LapMat[3][i]=0.;
+
+      if(i<_Nx)
+	LapMat[0][i]=0.;
+
+      if(i>(_Nyloc-1)*_Nx-1)
+	LapMat[4][i]=0.;
+    }
+
+  if (_CL_gauche == "Neumann" or _CL_gauche == "Neumann_non_constant")
+    {
+      for (int i = 0 ; i < _Nyloc; i++)
+	{
+	  LapMat[2][_Nx*i] += beta; //Bord gauche
+	}
     }
   }
 
@@ -141,7 +151,10 @@ void EC_ClassiqueP::InitializeMatrix()
   {
     for (int i = 0; i < _Ny; i++)
     {
-      LapMat[2][_Nx * (i + 1) - 1] += beta; //Bord droit
+      for (int i = 0 ; i < _Nyloc; i++)
+	{
+	  LapMat[2][_Nx*(i+1)-1] += beta; //Bord droit
+	}
     }
   }
 
@@ -149,7 +162,10 @@ void EC_ClassiqueP::InitializeMatrix()
   {
     for (int i = 0; i < _Nx; i++)
     {
-      LapMat[2][i] += gamma; //Bord haut
+      for (int i = 0; i < _Nx ; i++)
+	{
+	  LapMat[2][i] += gamma; //Bord haut
+	}
     }
   }
 
@@ -157,43 +173,47 @@ void EC_ClassiqueP::InitializeMatrix()
   {
     for (int i = 0; i < _Nx; i++)
     {
-      LapMat[2][(_Ny - 1) * _Nx + i] += gamma; //Bord bas
+      for (int i = 0; i < _Nx ; i++)
+	{
+	  LapMat[2][(_Nyloc-1)*_Nx+i] += gamma; //Bord bas
+	}
     }
   }
   //--------------------------------------------------------------------
   //On découpe la matrice en vecteur local
 
   _LapMatloc.resize(5);
-  int i1, iN;
-  charge(_Nx * _Ny, _Np, _Me, i1, iN);
 
-  for (int i = 0; i < 5; i++)
-  {
-    _LapMatloc[i].resize(iN - i1 + 1);
-    _LapMatloc[i] = vectorsplit(LapMat[i]);
-  }
+  for (int i=0; i<5; i++)
+    {
+      _LapMatloc[i].resize(_Nyloc+1);
+      _LapMatloc[i] = vectorsplit(LapMat[i]);
+    }
+
 }
 
-void EC_ClassiqueP::IterativeSolver(int nb_iterations)
+
+
+void EC_ClassiqueP::IterativeSolver (int nb_iterations)
 {
   // // Cette méthode est au coeur de la résolution du problème, elle permet d'effectuer la marche en temps
 
   MPI_Status status;
 
-  int i1, iN;
-  charge(_Nx * _Ny, _Np, _Me, i1, iN);
-  int Nloc = iN - i1 + 1;
+  int Nloc = _Nx*_Nyloc;
 
   //Sauvegarde d'un points ou plusieurs points particuliers au cours du temps:------------------------------------------------------------------------------------
-  ofstream *flux_pts(new ofstream);
+  // à voir plus tard
+
+  ofstream* flux_pts(new ofstream);
   vector<double> _sol;
 
-  if (_save_points_file != "non")
-  {
-    //Si on sauvegarde des points en particulier, on initialise l'ouverture des fichiers ici.
-    flux_pts->open(_save_points_file + ".txt", ios::out);
-    _sol.resize(_Nx * _Ny);
-  }
+  if(_save_points_file != "non")// à refaire (besoin de savoir dans quel proc est le point pour l'enregistrer)
+    {
+      //Si on sauvegarde des points en particulier, on initialise l'ouverture des fichiers ici.
+      flux_pts->open(_save_points_file+".txt", ios::out);
+      _sol.resize(_Nx*_Ny);
+    }
   //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
   for (int i = 0; i <= nb_iterations; i++)
@@ -203,6 +223,18 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
     if ((_save_points_file != "non") and (_Me == 0))
     {
+
+      //-------------TRUC POUR SAUVEGARDER------------------------------------------
+      if (_save_all_file != "non")
+	EC_ClassiqueP::SaveSol(_save_all_file+"/sol_it_"+to_string(i)+".vtk"); // Besoin de refaire ça aussi (écrire dans des fichiers différents ou tout regrouper sur un proc et écrire dans un seul fichier) à voir après
+     
+      if ((_save_points_file != "non") and (_Me == 0)) //à voir après
+	{
+      
+	  for (int i=0; i<=iN; i++)
+	    {
+	      _sol[i] = _solloc[i];
+	    } 
 
       for (int i = 0; i <= iN; i++)
       {
@@ -218,55 +250,120 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
         MPI_Recv(&sol_temp[0], he_iN - he_i1 + 1, MPI_DOUBLE, he, 100 * he, MPI_COMM_WORLD, &status);
 
-        for (int i = he_i1; i <= he_iN; i++)
-        {
-          //cout<<_Me<<" "<<i<<" "<<sol_temp[i]<<endl;;
-          _sol[i] = sol_temp[i - he_i1];
-        }
-      }
+	      for (int i=he_i1; i<=he_iN ; i++)
+		{
+		  //cout<<_Me<<" "<<i<<" "<<sol_temp[i]<<endl;;
+		  _sol[i] = sol_temp[i-he_i1];
+		}
+	    }
 
-      *flux_pts << i * _deltaT << " ";
-      //char* truc = new char;
-      for (int j = 0; j < _number_saved_points; j++)
-      {
-        int pos = floor(_saved_points[j][0] / _h_x) + _Nx * floor(_saved_points[j][1] / _h_y);
-        *flux_pts << _sol[pos] << " ";
-      }
-      *flux_pts << endl;
-    }
-    if ((_save_points_file != "non") and (_Me != 0))
-    {
-      MPI_Send(&_solloc[0], iN - i1 + 1, MPI_DOUBLE, 0, 100 * _Me, MPI_COMM_WORLD);
-    }
+	  *flux_pts<<i*_deltaT<<" ";
+	  //char* truc = new char;
+	  for (int j=0; j<_number_saved_points; j++)
+	    {
+	      int pos = floor(_saved_points[j][0]/_h_x) + _Nx*floor(_saved_points[j][1]/_h_y);
+	      *flux_pts<<_sol[pos]<<" ";
+	    }
+	  *flux_pts<<endl;	  
+	}
+      if ((_save_points_file != "non") and (_Me != 0))
+	{
+	  MPI_Send(&_solloc[0],iN-i1+1,MPI_DOUBLE,0,100*_Me,MPI_COMM_WORLD);
+	}
+      //----------------FIN DES TRUCS POUR SAUVEGARDER------------------------------
 
-    EC_ClassiqueP::ConditionsLimites(i);
-    //--------------------------------------------------------------------------
-    //Prise en compte du terme source :
-    for (int k = 0; k < Nloc; k++)
-    {
-      int num = i1 + k;
-      double x = (num % _Nx) * _h_x;
-      double y = (num / _Nx) * _h_y;
 
-      if (_Source == Source::NON)
-      {
-        _floc[k] = _solloc[k];
-      }
 
-      if (_Source == Source::POLYNOMIAL)
-      {
+      EC_ClassiqueP::ConditionsLimites(i);
 
-        _floc[k] = _solloc[k] + 2 * _deltaT * (y - y * y + x - x * x);
-      }
-      if (_Source == Source::TRIGONOMETRIQUE)
-      {
-        _floc[k] = _solloc[k] + _deltaT * (sin(x) + cos(y));
-      }
-      if (_Source == Source::INSTATIONNAIRE)
-      {
-        _floc[k] = _solloc[k] + _deltaT * exp(-(x / 2.) * (x / 2.)) * exp(-(y / 2) * (y / 2)) * cos(M_PI * i * _deltaT / 2.);
-      }
-    }
+ 
+      //------------Terme source global-----------------------------------------
+      //à mettre à jour aussi
+      for (int k=0 ; k < Nloc ;k++)
+	{
+	  int num = i1 + k;
+	  double x = (num%_Nx)*_h_x;
+	  double y = (num/_Nx)*_h_y; 
+
+	  if (_Source == "non")
+	    {
+	      _floc[k] = _solloc[k];
+	    }
+	  
+	  if (_Source == "polynomial")
+	    {
+	       
+	      _floc[k] = _solloc[k] + 2*_deltaT*(y - y*y + x -x*x);
+	    }
+	  if(_Source == "trigonometrique")
+	    {
+	      _floc[k] = _solloc[k] + _deltaT*(sin(x) +cos(y)) ;
+	    }
+	  if(_Source == "instationnaire")
+	    {
+	      _floc[k] = _solloc[k] + _deltaT*exp( -(x/2.)*(x/2.) )*exp( -(y/2)*(y/2) )*cos(M_PI*i*_deltaT/2.);
+	    }
+
+	}
+      
+      //------------------------------------------------------------------------
+
+      //initialisation schwartz
+      std::vector<double> solloc_k;
+      std::vector<double> solloc_km;
+      solloc_k.resize(Nloc);
+      solloc_km.resize(Nloc);
+      
+      solloc_k = _solloc;
+      solloc_km = _solloc;
+      
+      double norme;
+      
+
+      //-debut boucle schwartz
+      //while (cond)
+      int kmax = _Nx*_Nyloc +100; //Pour une matrice de taille n le GC met max n étapes en théorie, comme on veut être sûr qu'il converge on prend une petite marge
+      solloc_k = CG(_LapMatloc,_floc,solloc_k,0.0000001,kmax,_Nx,_Nyloc);
+      
+
+      std::vector<double> frontiere_haut;
+      std::vector<double> frontiere_bas;
+      frontiere_haut.resize(Nx);
+      frontiere_bas.resize(Nx);
+
+      if(_Me==0)
+	{
+	  MPI_Send(&_solloc[(iN-1)*_Nx],_Nx,MPI_DOUBLE,1,0,MPI_COMM_WORLD);
+	  MPI_Recv(&frontiere_bas[0],_Nx,MPI_DOUBLE,1,100,MPI_COMM_WORLD, &status);
+	}
+
+      for (int he=1;he<_Np-1;he++)
+	{
+	  
+	  MPI_Send(&_solloc[0],_Nx,MPI_DOUBLE,he-1,100*_Me,MPI_COMM_WORLD);
+	  MPI_Recv(&frontiere_haut[0],_Nx,MPI_DOUBLE,he-1,100*(he-1),MPI_COMM_WORLD, &status);
+	  MPI_Send(&_solloc[(iN-1)*_Nx],_Nx,MPI_DOUBLE,he+1,100*_Me,MPI_COMM_WORLD);
+	  MPI_Recv(&frontiere_haut[0],_Nx,MPI_DOUBLE,he+1,100*(he+1),MPI_COMM_WORLD, &status);	  
+	}
+      
+      if (_Me = Np)
+	{
+	  MPI_Send(&_solloc[0],_Nx,MPI_DOUBLE,Np-1,100*_Me,MPI_COMM_WORLD);
+	  MPI_Recv(&frontiere_haut[0],_Nx,MPI_DOUBLE,Np-1,100*(Np-1),MPI_COMM_WORLD, &status);
+	}
+
+
+      //update CF schwartz dans floc
+
+
+
+      
+      //fin de boucle schwartz
+
+
+
+      
+
 
     //------------------------------------------------------------------------
     int kmax = _Nx * _Ny + 100; //Pour une matrice de taille n le GC met max n étapes en théorie, comme on veut être sûr qu'il converge on prend une petite marge
@@ -305,7 +402,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
 void Laplacian2D::SaveSol(string name_file)
 {
-  // // Cette méthode est celle qui nous permet d'enregistrer la solution sous forme de fichier lisible par paraview. Pour cela, elle envoie tout les vecteurs locaux solloc vers le processeur 0, qui va se charger de reformer le vecteur solution global puis d'écrire le résultat dans le bon format.
+  // À refaire complètement -> à voir
 
   MPI_Status status;
 
@@ -397,14 +494,19 @@ void Laplacian2D::SaveSol(string name_file)
   }
 }
 
-void EC_ClassiqueP::ConditionsLimites(int num_it)
+
+void EC_ClassiqueP::UpdateSecondMembre(int num_it)
 {
   // // Cette méthode nous permet de mettre à jours le terme source à chaque itération pour prendre en compte les effets des conditions limites.
+  // à mettre aussi à jour pour les CL entre les procs
 
-  int i1, iN;
-  double gamma = -_a * _deltaT / (_h_y * _h_y);
-  double beta = -_a * _deltaT / (_h_x * _h_x);
-  charge(_Nx * _Ny, _Np, _Me, i1, iN);
+
+  int i1,iN;
+  double gamma = -_a*_deltaT/(_h_y*_h_y);
+  double beta = -_a*_deltaT/(_h_x*_h_x);
+  charge(_Ny,_Np,_Me,i1,iN);
+
+
 
   if (_CL_haut == CL::DIRICHLET) //Condition de température en haut
   {
@@ -533,4 +635,28 @@ void EC_ClassiqueP::ConditionsLimites(int num_it)
       }
     }
   }
+}
+
+
+void UpdateSchwartzCF(frontiere_haut, frontiere_bas) 
+{
+  //Cette methode permet de mettre à jour floc pour prendre en compte l'évolution des conditions à la frontiere entre les procs dans la boucle de schwartz
+
+  if (terme source == "trigo")
+    x=4
+	     
+
+
+
+
+
+  for (int j = 0; j < _Nx ; j++)
+        {
+	  _floc[_Nx*(_Nyloc -1)+ j] = _floc[_Nx*(_Nyloc -1)+ j]-gamma*frontiere_bas[j] ;
+        }
+
+
+
+
+
 }
