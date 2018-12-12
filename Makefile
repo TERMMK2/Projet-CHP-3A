@@ -3,7 +3,7 @@ CC=g++
 CC_para=mpic++ 
 
 run : main.cc fonction.cpp Laplacian2DPara.cpp fonction.h Laplacian2DPara.h
-	$(CC_para) -std=c++11  main.cc fonction.cpp   -o run
+	$(CC_para) -std=c++11 -g3 mainPara.cc fonction.cpp   -o run
 
 #si on a des trucs a tester :
 test : test.cc 

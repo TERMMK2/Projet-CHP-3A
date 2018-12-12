@@ -31,7 +31,7 @@ void Laplacian2D::Initialize(double x_min, double x_max, double y_min, double y_
   _save_all_file = save_all_file;
   _save_points_file = save_points_file;
   _number_saved_points = number_saved_points;
-  _saved_points = saved_points;
+  _saved_points = move(saved_points);
 
   if (_save_all_file != "non") //On supprime l'ancien fichier qui contient les solutions au cours du temps et on en crée un nouveau
   {
@@ -303,15 +303,15 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
   }
 }
 
-void Laplacian2D::SaveSol(string name_file)
+void Laplacian2D::SaveSol(const string& name_file)
 {
-  // // Cette méthode est celle qui nous permet d'enregistrer la solution sous forme de fichier lisible par paraview. Pour cela, elle envoie tout les vecteurs locaux solloc vers le processeur 0, qui va se charger de reformer le vecteur solution global puis d'écrire le résultat dans le bon format.
+  // // Cette méthode est celle qui nous permet d'enregistrer la solution sous forme de fichier lisible par paraview. Pour cela, elle envoie tout les vecteurs locaux solloc vers le processeur 0, qui va se charger de reformer le vecteur solution global puis d'écrire le résultat dans le bon format
 
   MPI_Status status;
 
   int i1, iN;
   charge(_Nx * _Ny, _Np, _Me, i1, iN);
-  if (_Me == 0)
+  if (_Me == 0)1
   {
     vector<double> sol;
     sol.resize(_Nx * _Ny);
@@ -468,7 +468,7 @@ void EC_ClassiqueP::ConditionsLimites(int num_it)
     }
   }
 
-  if (_CL_gauche == CL::NEUMAN_NON_CONSTANT) //Condition de flux à gauche
+  if (_CL_gauche == CL::NEUMANN_NON_CONSTANT) //Condition de flux à gauche
   {
     Laplacian2D::UpdateCL(num_it);
     for (int i = 0; i < _Ny; i++)
