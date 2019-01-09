@@ -227,7 +227,6 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
     if (_save_all_file_enabled)
       EC_ClassiqueP::SaveSol(_save_all_file + "/sol_it_" + to_string(iter) + ".vtk");
 
-
     if ((_save_points_file_enabled) and (_Me == 0))
     {
 
@@ -242,6 +241,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
       {
         int he_i1, he_iN;
         charge(_Ny, _Np, he, he_i1, he_iN);
+
         vector<double> sol_temp;
         sol_temp.resize((he_iN - he_i1 + 1) * _Nx);
 
