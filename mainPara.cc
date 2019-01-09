@@ -97,15 +97,23 @@ int main(int argc, char *argv[])
   string save_points_file = getenv_var<std::string>(VAR_SAVE_POINTS_FILE, "points_TER"); //Mettre non si on ne veut pas sauvegarder la température au cours du temps en des points paritculiers
   vector<point> saved_points = getenv_var<vector<point> >(VAR_SAVED_POINT, {{0.0, 0.0025}, {0.002, 0.0025}, {0.004, 0.0025}});
 
-  //  Check param 
+  //  Check param
+
+  for (const auto& p : saved_points) {
+    if (p.first > xmax || p.first < xmin || p.second > ymax || p.second < ymin)
+      throw std::runtime_error("saved point must be in [xmin, xmax] * [ymin, ymax]");
+  }
 
   if (xmin >= xmax)
-    throw std::runtime_error("xmin must be greater than xmax");
+    throw std::runtime_error("xmin must be lower than xmax");
 
   if (ymin >= ymax)
-    throw std::runtime_error("ymin must be greater than ymax");
+    throw std::runtime_error("ymin must be lower than ymax");
 
-   EC_ClassiqueP Lap;
+  if (deltaT < 0.0)
+    throw std::runtime_error("deltaT must be greater than 0.0");
+
+  EC_ClassiqueP Lap;
 
   //-------------------------------------------------------------------------
   

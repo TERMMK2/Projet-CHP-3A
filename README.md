@@ -18,5 +18,7 @@ CHP_val_cl_bas
 CHP_val_cl_gauche
 CHP_val_cl_droite
 CHP_source=polynomial|trigonometrique|instationnaire
-CHP_saved_points=(x0,y0), (x1, y1), 
+CHP_saved_points=(x0,y0), (x1, y1), ...
+CHP_save_all_file
+CHP_save_points_file
 CHP_chevauchement
