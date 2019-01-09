@@ -43,7 +43,6 @@ class Laplacian2D // pas fini de modifier
     Source _Source;
     int _chevauchement;
 
-    
     std::string _save_all_file;
     bool _save_all_file_enabled;
 

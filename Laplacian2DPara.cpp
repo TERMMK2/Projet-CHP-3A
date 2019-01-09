@@ -209,13 +209,13 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
   //Sauvegarde d'un points ou plusieurs points particuliers au cours du temps:------------------------------------------------------------------------------------
   // à voir plus tard
 
-  ofstream *flux_pts(new ofstream);
+  ofstream flux_pts;
   vector<double> _sol;
 
-  if (_save_points_file != "non") // à refaire (besoin de savoir dans quel proc est le point pour l'enregistrer)
+  if (_save_points_file_enabled) // à refaire (besoin de savoir dans quel proc est le point pour l'enregistrer)
   {
     //Si on sauvegarde des points en particulier, on initialise l'ouverture des fichiers ici.
-    flux_pts->open(_save_points_file + ".txt", ios::out);
+    flux_pts.open(_save_points_file + ".txt", ios::out);
     _sol.resize(_Nx * _Ny);
   }
   //-------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -256,14 +256,14 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
         }
       }
 
-      *flux_pts << iter * _deltaT << " ";
+      flux_pts << iter * _deltaT << " ";
       //char* truc = new char;
       for (const auto &p : _saved_points)
       {
         const int pos = floor(p.first / _h_x) + _Nx * floor(p.second / _h_y);
-        *flux_pts << sol[pos] << " ";
+        flux_pts << sol[pos] << " ";
       }
-      *flux_pts << endl;
+      flux_pts << endl;
     }
     if ((_save_points_file_enabled) and (_Me != 0))
     {
