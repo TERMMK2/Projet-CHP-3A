@@ -1,3 +1,6 @@
+#ifndef LAPLACIAN_2D_H_
+#define LAPLACIAN_2D_H_
+
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -15,12 +18,14 @@
    #define M_PI 3.141592653589793238462643383279
 #endif
 
+using point = std::pair<double, double>;
 
 class Laplacian2D // pas fini de modifier
 {
 
-  enum class Source {NON, POLYNOMIAL, TRIGONOMETRIQUE, INSTATIONNAIRE};
-  enum class CL {DIRICHLET, NEUMANN, NEUMAN_NON_CONSTANT}; 
+  public:
+    enum class Source {NON, POLYNOMIAL, TRIGONOMETRIQUE, INSTATIONNAIRE};
+    enum class CL {DIRICHLET, NEUMANN, NEUMANN_NON_CONSTANT}; 
 
   protected: // Les attributs de la classe
     double _x_min, _x_max, _y_min, _y_max, _h_x, _h_y, _a, _deltaT;
@@ -40,17 +45,18 @@ class Laplacian2D // pas fini de modifier
     std::string _save_all_file;
     std::string _save_points_file;
 
-    int _number_saved_points;
-    std::vector<std::vector <double> > _saved_points;
+    std::vector<point> _saved_points;
 
   public: // Méthodes et opérateurs de la classe
-
 
     Laplacian2D();// Constructeur : Initialiser _x_min, _x_max, _y_min; _y_max; _N; _h; _LapMat; _x; _y et _sol.
     virtual ~Laplacian2D();
 
-
-    void Initialize(double x_min, double x_max, double y_min, double y_max, int Nx, int Ny, double a, double deltaT, int Me, int Np, Source source, std::string save_all_file, std::string _save_points_file, int number_saved_points,std::vector<std::vector <double> > saved_points );
+    void Initialize(
+      double x_min, double x_max, double y_min, double y_max, 
+      int Nx, int Ny, double a, double deltaT, int Me, int Np, 
+      Source source, std::string save_all_file, std::string _save_points_file, 
+      std::vector<point> saved_points);
 
     void InitializeCL(CL CL_bas, CL CL_haut, CL CL_gauche, CL CL_droite, double Val_CL_bas, double Val_CL_haut, double Val_CL_gauche, double Val_CL_droite);
 
@@ -62,11 +68,11 @@ class Laplacian2D // pas fini de modifier
 
     virtual void IterativeSolver(int nb_iterations) = 0;   // Résout le système _LapMat * _sol = _f avec un solveur itératif.
 
-    void SaveSol(std::string name_file); // Écrit les solutions dans le fichier "name_file".
+    void SaveSol(const std::string& name_file); // Écrit les solutions dans le fichier "name_file".
 
     virtual void UpdateSecondMembre(int num_it) = 0;
 
-    virtual void UpdateSchwartzCF(frontiere_haut, frontiere_bas) =0;
+   // virtual void UpdateSchwartzCF(frontiere_haut, frontiere_bas) =0;
 
 };
 
@@ -74,10 +80,11 @@ class EC_ClassiqueP : public Laplacian2D
 {
   //L'utilisation d'une unique classe fille vient de notre code utilisé dans notre TER sur lequel nous nous sommes basé pour écrire celui-ci. Même si elle n'est pas utile nous ne voulions pas la suprimer pour éviter de perdre du temps sur des choses peu utiles.
 
-
   public:
     void InitializeMatrix();
     void IterativeSolver(int nb_iterations);
     void UpdateSecondMembre(int num_it);
-    void UpdateSchwartzCF(frontiere_haut, frontiere_bas);
+    //void UpdateSchwartzCF(frontiere_haut, frontiere_bas);
 };
+
+#endif

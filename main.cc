@@ -1,10 +1,36 @@
+
+#include <iostream>
+#include <cmath>
+#include <vector>
+
 #include "fonction.h"
-#include<iostream>
-#include<cmath>
-#include<vector>
+#include "getenv_var.h"
+
+#include "Laplacian2DParaParse.h"
+
 
 int main(int argc, char * argv[])
 {
+  using namespace std;
+
+  using pair = std::pair<float, float>;
+
+  const char *str = "(1, 2), (4, 5.8), (8.0, 2.4)";
+  char *end;
+
+  std::vector<pair> vec{
+    str_parser<std::vector<pair> >::parse(str, &end)
+  };
+
+  if (end == str)
+    std::cout << "MAtch error" << std::endl;
+
+  for (const auto& v : vec) {
+    std::cout << "(" << v.first << " ," << v.second << ")" << std::endl;
+  }
+  
+
+  /*
   double err = 1.e-3;
   int kmax = 100000;
 
@@ -37,13 +63,13 @@ int main(int argc, char * argv[])
 
   std::cout << "x =" << std::endl;
   for (int i=0 ; i<N ; i++)
-    {
-      std::cout << x[i] <<std::endl;
-    }
+  {
+    std::cout << x[i] <<std::endl;
+  }
 
 
   return 0;
-
+*/
 }
 
 

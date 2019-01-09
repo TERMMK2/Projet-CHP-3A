@@ -11,7 +11,11 @@ Laplacian2D::~Laplacian2D()
 {
 }
 
-void Laplacian2D::Initialize(double x_min, double x_max, double y_min, double y_max, int Nx, int Ny, double a, double deltaT, int Me, int Np, Source source, string save_all_file, string save_points_file, int number_saved_points, vector<vector<double>> saved_points)
+void Laplacian2D::Initialize(
+    double x_min, double x_max, double y_min, double y_max, 
+    int Nx, int Ny, double a, double deltaT, int Me, int Np, 
+    Source source, string save_all_file, string save_points_file, 
+    vector<point> saved_points)
 {
   // // On  initialise les constantes connues de tous les processeurs.
 
@@ -30,8 +34,7 @@ void Laplacian2D::Initialize(double x_min, double x_max, double y_min, double y_
   _Source = source;
   _save_all_file = save_all_file;
   _save_points_file = save_points_file;
-  _number_saved_points = number_saved_points;
-  _saved_points = saved_points;
+  _saved_points = move(saved_points);
 
   if (_save_all_file != "non") //On supprime l'ancien fichier qui contient les solutions au cours du temps et on en crée un nouveau
   {
@@ -250,9 +253,9 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
         *flux_pts << i * _deltaT << " ";
         //char* truc = new char;
-        for (int j = 0; j < _number_saved_points; j++)
+        for (point& p : saved_points)
         {
-          int pos = floor(_saved_points[j][0] / _h_x) + _Nx * floor(_saved_points[j][1] / _h_y);
+          int pos = floor(p.first / _h_x) + _Nx * floor(p.second / _h_y);
           *flux_pts << _sol[pos] << " ";
         }
         *flux_pts << endl;
@@ -280,7 +283,6 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
         if (_Source == Source::POLYNOMIAL)
         {
-
           _floc[k] = _solloc[k] + 2 * _deltaT * (y - y * y + x - x * x);
         }
         if (_Source == Source::TRIGONOMETRIQUE)
@@ -324,7 +326,6 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
       for (int he = 1; he < _Np - 1; he++)
       {
-
         MPI_Send(&_solloc[0], _Nx, MPI_DOUBLE, he - 1, 100 * _Me, MPI_COMM_WORLD);
         MPI_Recv(&frontiere_haut[0], _Nx, MPI_DOUBLE, he - 1, 100 * (he - 1), MPI_COMM_WORLD, &status);
         MPI_Send(&_solloc[(iN - 1) * _Nx], _Nx, MPI_DOUBLE, he + 1, 100 * _Me, MPI_COMM_WORLD);
@@ -488,7 +489,8 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
           _solloc[j - i1] = _solloc[j - i1] - gamma * _Val_CL_haut;
       }
     }
-    s if (_CL_bas == CL::DIRICHLET) //Condition de température en bas
+    
+    if (_CL_bas == CL::DIRICHLET) //Condition de température en bas
     {
       for (int j = 0; j < _Nx; j++)
       {
@@ -523,6 +525,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
           _solloc[j - i1] = _solloc[j - i1] - gamma * _Val_CL_haut * _h_y;
       }
     }
+
     if (_CL_bas == CL::NEUMANN) //Condition de flux en bas
     {
       for (int j = 0; j < _Nx; j++)
@@ -607,7 +610,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
       }
     }
   }
-
+  /*
   void UpdateSchwartzCF(frontiere_haut, frontiere_bas)
   {
     //Cette methode permet de mettre à jour floc pour prendre en compte l'évolution des conditions à la frontiere entre les procs dans la boucle de schwartz
@@ -620,3 +623,4 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
         _floc[_Nx * (_Nyloc - 1) + j] = _floc[_Nx * (_Nyloc - 1) + j] - gamma * frontiere_bas[j];
       }
   }
+*/
