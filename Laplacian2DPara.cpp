@@ -218,7 +218,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
   for (int iter = 0; iter <= nb_iterations; iter++)
   {
 
-    //-------------TRUC POUR SAUVEGARDER------------------------------------------
+    //-------------PARTIE CONCERNANT LA SAUVEGARDE DE LA SOLUTION------------------------------------------
     // if (_save_all_file != "non")
     // 	EC_ClassiqueP::SaveSol(_save_all_file+"/sol_it_"+to_string(i)+".vtk"); // Besoin de refaire ça aussi (écrire dans des fichiers différents ou tout regrouper sur un proc et écrire dans un seul fichier) à voir après
 
@@ -259,7 +259,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
     // 	{
     // 	  MPI_Send(&_solloc[0],iN-i1+1,MPI_DOUBLE,0,100*_Me,MPI_COMM_WORLD);
     // 	}
-    //----------------FIN DES TRUCS POUR SAUVEGARDER-----------------------------
+    //----------------FIN DE LA SAUVEGARDE DE LA SOLUTION-----------------------------
 
     UpdateSecondMembre(iter);
 
@@ -389,12 +389,12 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
     MPI_Status status;
 
   int i1, iN;
-  charge(_Nx * _Ny, _Np, _Me, i1, iN);
+  charge(_Ny, _Np, _Me, i1, iN);
   if (_Me == 0)
   {
     vector<double> sol;
     sol.resize(_Nx * _Ny);
-    for (int i = 0; i <= iN; i++)
+    for (int i = 0; i < iN*_Nx; i++)
     {
       sol[i] = _solloc[i];
     }
@@ -402,15 +402,15 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
     for (int he = 1; he < _Np; he++)
     {
       int he_i1, he_iN;
-      charge(_Nx * _Ny, _Np, he, he_i1, he_iN);
+      charge(_Ny, _Np, he, he_i1, he_iN);
       vector<double> sol_temp;
-      sol_temp.resize(he_iN - he_i1 + 1);
+      sol_temp.resize((he_iN - he_i1 + 1)*_Nx);
 
-      MPI_Recv(&sol_temp[0], he_iN - he_i1 + 1, MPI_DOUBLE, he, 100 * he, MPI_COMM_WORLD, &status);
+      MPI_Recv(&sol_temp[0], (he_iN - he_i1 + 1)*_Nx, MPI_DOUBLE, he, 100 * he, MPI_COMM_WORLD, &status);
 
-      for (int i = he_i1; i <= he_iN; i++)
+      for (int i = he_i1*_Nx; i < he_iN*_Nx; i++)
       {
-        sol[i] = sol_temp[i - he_i1];
+        sol[i] = sol_temp[i - he_i1*_Nx];
       }
     }
 
@@ -472,7 +472,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
   }
   else
   {
-    MPI_Send(&_solloc[0], iN - i1 + 1, MPI_DOUBLE, 0, 100 * _Me, MPI_COMM_WORLD);
+    MPI_Send(&_solloc[0], (iN - i1 + 1)*_Nx, MPI_DOUBLE, 0, 100 * _Me, MPI_COMM_WORLD);
   }
 }
 
