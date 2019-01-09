@@ -388,55 +388,55 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
     MPI_Status status;
 
-  int i1, iN;
-  charge(_Nx * _Ny, _Np, _Me, i1, iN);
-  if (_Me == 0)
-  {
-    vector<double> sol;
-    sol.resize(_Nx * _Ny);
-    for (int i = 0; i <= iN; i++)
+    int i1, iN;
+    charge(_Nx * _Ny, _Np, _Me, i1, iN);
+    if (_Me == 0)
     {
-      sol[i] = _solloc[i];
-    }
-
-    for (int he = 1; he < _Np; he++)
-    {
-      int he_i1, he_iN;
-      charge(_Nx * _Ny, _Np, he, he_i1, he_iN);
-      vector<double> sol_temp;
-      sol_temp.resize(he_iN - he_i1 + 1);
-
-      MPI_Recv(&sol_temp[0], he_iN - he_i1 + 1, MPI_DOUBLE, he, 100 * he, MPI_COMM_WORLD, &status);
-
-      for (int i = he_i1; i <= he_iN; i++)
+      vector<double> sol;
+      sol.resize(_Nx * _Ny);
+      for (int i = 0; i <= iN; i++)
       {
-        sol[i] = sol_temp[i - he_i1];
+        sol[i] = _solloc[i];
       }
-    }
 
-    ofstream mon_flux;
-    mon_flux.open(name_file, ios::out);
-    mon_flux << "# vtk DataFile Version 3.0" << endl
-             << "cell" << endl
-             << "ASCII" << endl
-             << "DATASET STRUCTURED_POINTS" << endl
-             << "DIMENSIONS " << _Nx << " " << _Ny << " 1" << endl
-             << "ORIGIN 0 0 0" << endl
-             << "SPACING " + to_string((_x_max - _x_min) / _Nx) + " " + to_string((_y_max - _y_min) / _Ny) + " 1" << endl
-             << "POINT_DATA " << _Nx * _Ny << endl
-             << "SCALARS sample_scalars double" << endl
-             << "LOOKUP_TABLE default" << endl;
-
-    for (int i = _Ny - 1; i >= 0; i--)
-    {
-      for (int j = 0; j < _Nx; j++)
+      for (int he = 1; he < _Np; he++)
       {
-        mon_flux << sol[j + i * _Nx] << " ";
-      }
-      mon_flux << endl;
-    }
+        int he_i1, he_iN;
+        charge(_Nx * _Ny, _Np, he, he_i1, he_iN);
+        vector<double> sol_temp;
+        sol_temp.resize(he_iN - he_i1 + 1);
 
-    mon_flux.close();
+        MPI_Recv(&sol_temp[0], he_iN - he_i1 + 1, MPI_DOUBLE, he, 100 * he, MPI_COMM_WORLD, &status);
+
+        for (int i = he_i1; i <= he_iN; i++)
+        {
+          sol[i] = sol_temp[i - he_i1];
+        }
+      }
+
+      ofstream mon_flux;
+      mon_flux.open(name_file, ios::out);
+      mon_flux << "# vtk DataFile Version 3.0" << endl
+              << "cell" << endl
+              << "ASCII" << endl
+              << "DATASET STRUCTURED_POINTS" << endl
+              << "DIMENSIONS " << _Nx << " " << _Ny << " 1" << endl
+              << "ORIGIN 0 0 0" << endl
+              << "SPACING " + to_string((_x_max - _x_min) / _Nx) + " " + to_string((_y_max - _y_min) / _Ny) + " 1" << endl
+              << "POINT_DATA " << _Nx * _Ny << endl
+              << "SCALARS sample_scalars double" << endl
+              << "LOOKUP_TABLE default" << endl;
+
+      for (int i = _Ny - 1; i >= 0; i--)
+      {
+        for (int j = 0; j < _Nx; j++)
+        {
+          mon_flux << sol[j + i * _Nx] << " ";
+        }
+        mon_flux << endl;
+      }
+
+      mon_flux.close();
 
     /*
       string name_file2 = "comparaison.txt";

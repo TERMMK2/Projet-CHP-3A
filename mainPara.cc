@@ -39,6 +39,8 @@
 #define VAR_SOURCE VAR_PREFIX"source"
 
 #define VAR_SAVED_POINT VAR_PREFIX"saved_points"
+#define VAR_SAVE_ALL_FILE VAR_PREFIX"save_all_file"
+#define VAR_SAVE_POINTS_FILE VAR_PREFIX"save_points_file"
 
 #define VAR_CHEVAUCHEMENT VAR_PREFIX"chevauchement"
 
@@ -90,9 +92,9 @@ int main(int argc, char *argv[])
 
   double CI = 293.;
 
-  string save_all_file = "TER"; //Mettre "non" si on ne souhaite pas enregistrer la solution globale au cours du temps sous une forme lisible par paraview
+  string save_all_file = getenv_var<std::string>(VAR_SAVE_ALL_FILE, "TER"); //Mettre "non" si on ne souhaite pas enregistrer la solution globale au cours du temps sous une forme lisible par paraview
 
-  string save_points_file = "points_TER"; //Mettre non si on ne veut pas sauvegarder la température au cours du temps en des points paritculiers
+  string save_points_file = getenv_var<std::string>(VAR_SAVE_POINTS_FILE, "points_TER"); //Mettre non si on ne veut pas sauvegarder la température au cours du temps en des points paritculiers
   vector<point> saved_points = getenv_var<vector<point> >(VAR_SAVED_POINT, {{0.0, 0.0025}, {0.002, 0.0025}, {0.004, 0.0025}});
 
   //  Check param 

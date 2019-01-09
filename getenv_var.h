@@ -4,6 +4,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cctype>
+#include <cstring>
 
 #include <stdexcept>
 #include <vector>
@@ -29,6 +30,16 @@ T getenv_var(const char *var_name, const T default_value = T())
         return ret;
     }
 }
+
+template <>
+struct str_parser<std::string> {
+    static std::string parse(const char *str, char **end_ptr)
+    {
+        const std::size_t len = std::strlen(str);
+        *end_ptr = (char*)str + len;
+        return std::string(str);
+    }
+};
 
 template <>
 struct str_parser<int> {
