@@ -57,8 +57,8 @@ int main(int argc, char *argv[])
   MPI_Comm_size(MPI_COMM_WORLD, &Np); // get totalnodes
   MPI_Comm_rank(MPI_COMM_WORLD, &Me);
 
-  const int Nx = getenv_var<int>(VAR_NX, 20);
-  const int Ny = getenv_var<int>(VAR_NY, 20);
+  const int Nx = getenv_var<int>(VAR_NX, 30);
+  const int Ny = getenv_var<int>(VAR_NY, 30);
 
   // Truc machin biduletest
 
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 
   const double Val_CL_bas = getenv_var<double>(VAR_VAL_CL_BAS, 0.0);
   const double Val_CL_haut = getenv_var<double>(VAR_VAL_CL_HAUT, 0.0);
-  const double Val_CL_gauche = getenv_var<double>(VAR_VAL_CL_GAUCHE, 290.0);
+  const double Val_CL_gauche = getenv_var<double>(VAR_VAL_CL_GAUCHE, 1000.0);
   const double Val_CL_droite = getenv_var<double>(VAR_VAL_CL_DROITE, 0.0);
 
   int nb_iterations = int(ceil(tfinal / deltaT));
@@ -116,12 +116,16 @@ int main(int argc, char *argv[])
   EC_ClassiqueP Lap;
 
   //-------------------------------------------------------------------------
-  
+  if(Me ==0)
+    cout<<"Début de l'initialisation"<<endl;
   Lap.Initialize(xmin,xmax,ymin,ymax,Nx,Ny,a,deltaT, Me, Np, Source, chevauchement, save_all_file, save_points_file, saved_points);
   Lap.InitializeCI(CI);
   Lap.InitializeCL(CL_bas, CL_haut, CL_gauche, CL_droite, Val_CL_bas, Val_CL_haut, Val_CL_gauche, Val_CL_droite); 
   Lap.InitializeMatrix();
-    
+  if(Me == 0)
+    cout<<"Fin de l'initialisation"<<endl;
+
+
   //-------------------------------------------------------------------------
 
   auto start = chrono::high_resolution_clock::now();
