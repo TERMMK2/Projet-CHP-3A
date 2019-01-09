@@ -35,8 +35,13 @@ void Laplacian2D::Initialize(
   _Me = Me;
   _Np = Np;
   _Source = Source;
+  
   _save_all_file = save_all_file;
   _save_points_file = save_points_file;
+
+  _save_all_file_enabled = (save_all_file != "non");
+  _save_points_file_enabled = (save_points_file != "non");
+
   _saved_points = move(saved_points);
 
   if (_save_all_file != "non") //On supprime l'ancien fichier qui contient les solutions au cours du temps et on en crée un nouveau

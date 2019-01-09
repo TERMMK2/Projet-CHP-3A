@@ -43,9 +43,13 @@ class Laplacian2D // pas fini de modifier
     Source _Source;
     int _chevauchement;
 
+    
     std::string _save_all_file;
-    std::string _save_points_file;
+    bool _save_all_file_enabled;
 
+    std::string _save_points_file;
+    bool _save_points_file_enabled;
+    
     std::vector<point> _saved_points;
 
   public: // Méthodes et opérateurs de la classe
