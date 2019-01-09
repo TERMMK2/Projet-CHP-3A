@@ -235,7 +235,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
       vector<double> sol;
       sol.resize(_Nx * _Ny);
-      for (int i = 0; i < iN * _Nx; i++)
+      for (int i = 0; i < (iN+1) * _Nx; i++)
       {
         sol[i] = _solloc[i];
       }
@@ -250,7 +250,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
         MPI_Recv(&sol_temp[0], (he_iN - he_i1 + 1) * _Nx, MPI_DOUBLE, he, 100 * he, MPI_COMM_WORLD, &status);
 
-        for (int i = he_i1 * _Nx; i < he_iN * _Nx; i++)
+        for (int i = he_i1 * _Nx; i < (he_iN+1) * _Nx; i++)
         {
           sol[i] = sol_temp[i - he_i1 * _Nx];
         }
