@@ -224,46 +224,48 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
   {
 
     //-------------PARTIE CONCERNANT LA SAUVEGARDE DE LA SOLUTION------------------------------------------
-    // if (_save_all_file != "non")
-    // 	EC_ClassiqueP::SaveSol(_save_all_file+"/sol_it_"+to_string(i)+".vtk"); // Besoin de refaire ça aussi (écrire dans des fichiers différents ou tout regrouper sur un proc et écrire dans un seul fichier) à voir après
+     if (_save_all_file != "non")
+     	EC_ClassiqueP::SaveSol(_save_all_file+"/sol_it_"+to_string(i)+".vtk"); 
 
-    // if ((_save_points_file != "non") and (_Me == 0)) //à voir après
-    // 	{
+     if ((_save_points_file != "non") and (_Me == 0)) 
+     	{
 
-    // 	  for (int i=0; i<=iN; i++)
-    // 	    {
-    // 	      _sol[i] = _solloc[i];
-    // 	    }
+     	  
+	    vector<double> sol;
+	  sol.resize(_Nx * _Ny);
+	  for (int i = 0; i < iN*_Nx; i++)
+	  {
+	    sol[i] = _solloc[i];
+	  }
 
-    // 	  for (int he=1; he<_Np ; he++)
-    // 	    {
-    // 	      int he_i1, he_iN;
-    // 	      charge(_Nx*_Ny,_Np,he,he_i1,he_iN);
-    // 	      vector<double> sol_temp;
-    // 	      sol_temp.resize(he_iN-he_i1+1);
+	  for (int he = 1; he < _Np; he++)
+	  {
+	    int he_i1, he_iN;
+	    charge(_Ny, _Np, he, he_i1, he_iN);
+	    vector<double> sol_temp;
+	    sol_temp.resize((he_iN - he_i1 + 1)*_Nx);
+	  
+	    MPI_Recv(&sol_temp[0], (he_iN - he_i1 + 1)*_Nx, MPI_DOUBLE, he, 100 * he, MPI_COMM_WORLD, &status);
+	  
+	    for (int i = he_i1*_Nx; i < he_iN*_Nx; i++)
+	   	{
+	    	  sol[i] = sol_temp[i - he_i1*_Nx];
+	   	}
+	   }
 
-    // 	      MPI_Recv(&sol_temp[0],he_iN-he_i1+1,MPI_DOUBLE,he,100*he,MPI_COMM_WORLD, &status);
-
-    // 	      for (int i=he_i1; i<=he_iN ; i++)
-    // 		{
-    // 		  //cout<<_Me<<" "<<i<<" "<<sol_temp[i]<<endl;;
-    // 		  _sol[i] = sol_temp[i-he_i1];
-    // 		}
-    // 	    }
-
-    // 	  *flux_pts<<i*_deltaT<<" ";
-    // 	  //char* truc = new char;
-    // 	  for (int j=0; j<_number_saved_points; j++)
-    // 	    {
-    // 	      int pos = floor(_saved_points[j][0]/_h_x) + _Nx*floor(_saved_points[j][1]/_h_y);
-    // 	      *flux_pts<<_sol[pos]<<" ";
-    // 	    }
-    // 	  *flux_pts<<endl;
-    // 	}
-    // if ((_save_points_file != "non") and (_Me != 0))
-    // 	{
-    // 	  MPI_Send(&_solloc[0],iN-i1+1,MPI_DOUBLE,0,100*_Me,MPI_COMM_WORLD);
-    // 	}
+     	  *flux_pts<<i*_deltaT<<" ";
+     	  //char* truc = new char;
+     	  for (int j=0; j<_number_saved_points; j++)
+     	    {
+     	      int pos = floor(_saved_points[j][0]/_h_x) + _Nx*floor(_saved_points[j][1]/_h_y);
+     	      *flux_pts<<_sol[pos]<<" ";
+     	    }
+     	  *flux_pts<<endl;
+     	}
+     if ((_save_points_file != "non") and (_Me != 0))
+     	{
+     	  MPI_Send(&_solloc[0],(iN-i1+1)*_Nx,MPI_DOUBLE,0,100*_Me,MPI_COMM_WORLD);
+     	}
     //----------------FIN DE LA SAUVEGARDE DE LA SOLUTION-----------------------------
 
     UpdateSecondMembre(iter);
