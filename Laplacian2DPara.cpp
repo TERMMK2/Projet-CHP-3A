@@ -209,15 +209,15 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
   //Sauvegarde d'un points ou plusieurs points particuliers au cours du temps:------------------------------------------------------------------------------------
   // à voir plus tard
 
-  // ofstream* flux_pts(new ofstream);
-  // vector<double> _sol;
+  ofstream *flux_pts(new ofstream);
+  vector<double> _sol;
 
-  // if(_save_points_file != "non")// à refaire (besoin de savoir dans quel proc est le point pour l'enregistrer)
-  //   {
-  //     //Si on sauvegarde des points en particulier, on initialise l'ouverture des fichiers ici.
-  //     flux_pts->open(_save_points_file+".txt", ios::out);
-  //     _sol.resize(_Nx*_Ny);
-  //   }
+  if (_save_points_file != "non") // à refaire (besoin de savoir dans quel proc est le point pour l'enregistrer)
+  {
+    //Si on sauvegarde des points en particulier, on initialise l'ouverture des fichiers ici.
+    flux_pts->open(_save_points_file + ".txt", ios::out);
+    _sol.resize(_Nx * _Ny);
+  }
   //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
   for (int iter = 0; iter <= nb_iterations; iter++)
@@ -226,6 +226,9 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
     //-------------PARTIE CONCERNANT LA SAUVEGARDE DE LA SOLUTION------------------------------------------
     if (_save_all_file_enabled)
       EC_ClassiqueP::SaveSol(_save_all_file + "/sol_it_" + to_string(iter) + ".vtk");
+
+    int i1, iN;
+    charge(_Ny, _Np, _Me, i1, iN);
 
     if ((_save_points_file_enabled) and (_Me == 0))
     {
@@ -253,12 +256,12 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
         }
       }
 
-      *flux_pts << i * _deltaT << " ";
+      *flux_pts << iter * _deltaT << " ";
       //char* truc = new char;
-      for (const auto& p : _saved_points)
+      for (const auto &p : _saved_points)
       {
         const int pos = floor(p.first / _h_x) + _Nx * floor(p.second / _h_y);
-        *flux_pts << _sol[pos] << " ";
+        *flux_pts << sol[pos] << " ";
       }
       *flux_pts << endl;
     }
@@ -410,83 +413,52 @@ void Laplacian2D::SaveSol(const string &name_file)
       {
         sol[i] = _solloc[i];
       }
+    }
 
-      for (int he = 1; he < _Np; he++)
+    for (int he = 1; he < _Np; he++)
+    {
+      int he_i1, he_iN;
+      charge(_Ny, _Np, he, he_i1, he_iN);
+      vector<double> sol_temp;
+      sol_temp.resize((he_iN - he_i1 + 1) * _Nx);
+
+      MPI_Recv(&sol_temp[0], (he_iN - he_i1 + 1) * _Nx, MPI_DOUBLE, he, 100 * he, MPI_COMM_WORLD, &status);
+
+      for (int i = he_i1 * _Nx; i < he_iN * _Nx; i++)
       {
-        int he_i1, he_iN;
-        charge(_Ny, _Np, he, he_i1, he_iN);
-        vector<double> sol_temp;
-        sol_temp.resize((he_iN - he_i1 + 1) * _Nx);
-
-        MPI_Recv(&sol_temp[0], (he_iN - he_i1 + 1) * _Nx, MPI_DOUBLE, he, 100 * he, MPI_COMM_WORLD, &status);
-
-        for (int i = he_i1 * _Nx; i < he_iN * _Nx; i++)
-        {
-          sol[i] = sol_temp[i - he_i1 * _Nx];
-        }
-
-        ofstream mon_flux;
-        mon_flux.open(name_file, ios::out);
-        mon_flux << "# vtk DataFile Version 3.0" << endl
-                 << "cell" << endl
-                 << "ASCII" << endl
-                 << "DATASET STRUCTURED_POINTS" << endl
-                 << "DIMENSIONS " << _Nx << " " << _Ny << " 1" << endl
-                 << "ORIGIN 0 0 0" << endl
-                 << "SPACING " + to_string((_x_max - _x_min) / _Nx) + " " + to_string((_y_max - _y_min) / _Ny) + " 1" << endl
-                 << "POINT_DATA " << _Nx * _Ny << endl
-                 << "SCALARS sample_scalars double" << endl
-                 << "LOOKUP_TABLE default" << endl;
-
-        for (int i = _Ny - 1; i >= 0; i--)
-        {
-          for (int j = 0; j < _Nx; j++)
-          {
-            mon_flux << sol[j + i * _Nx] << " ";
-          }
-          mon_flux << endl;
-        }
-
-        mon_flux.close();
-
-        /*
-      string name_file2 = "comparaison.txt";
-
-      ofstream flux_compa;
-      flux_compa.open(name_file2, ios::out);
-      flux_compa << "# vtk DataFile Version 3.0" << endl
-	       << "cell" << endl
-	       << "ASCII" << endl
-	       << "DATASET STRUCTURED_POINTS" << endl
-	       << "DIMENSIONS " << _Nx << " " << _Ny << " 1" << endl
-	       << "ORIGIN 0 0 0" << endl
-	       << "SPACING " + to_string((_x_max-_x_min)/_Nx)+ " " + to_string((_y_max-_y_min)/_Ny) +" 1" << endl
-	       << "POINT_DATA " << _Nx*_Ny << endl
-	       << "SCALARS sample_scalars double" << endl
-	       << "LOOKUP_TABLE default" << endl;
-
-      for(int i=_Ny-1; i>=0; i--)
-	{
-	  for(int j=0; j<_Nx; j++)
-	    {
-	      double x = j*_h_y;
-	      double y = i*_h_x;
-
-	      //flux_compa << sol[j + i*_Nx] - ( x*x - x )*( y*y - y ) << " ";
-	      //flux_compa << sol[j + i*_Nx] - ( sin(x) + cos(y) )<<" ";
-	    }
-	  flux_compa << endl;
-	}
-      flux_compa.close();
-      */
-        //Cette partie commentée nous a permis de comparer les résultats théoriques et numériques des solutions pour les cas avec un terme source polynomial et trigonometrique.
+        sol[i] = sol_temp[i - he_i1 * _Nx];
       }
     }
+
+    ofstream mon_flux;
+    mon_flux.open(name_file, ios::out);
+    mon_flux << "# vtk DataFile Version 3.0" << endl
+             << "cell" << endl
+             << "ASCII" << endl
+             << "DATASET STRUCTURED_POINTS" << endl
+             << "DIMENSIONS " << _Nx << " " << _Ny << " 1" << endl
+             << "ORIGIN 0 0 0" << endl
+             << "SPACING " + to_string((_x_max - _x_min) / _Nx) + " " + to_string((_y_max - _y_min) / _Ny) + " 1" << endl
+             << "POINT_DATA " << _Nx * _Ny << endl
+             << "SCALARS sample_scalars double" << endl
+             << "LOOKUP_TABLE default" << endl;
+
+    for (int i = _Ny - 1; i >= 0; i--)
+    {
+      for (int j = 0; j < _Nx; j++)
+      {
+        mon_flux << sol[j + i * _Nx] << " ";
+      }
+      mon_flux << endl;
+    }
+
+    mon_flux.close();
   }
   else
   {
     MPI_Send(&_solloc[0], (iN - i1 + 1) * _Nx, MPI_DOUBLE, 0, 100 * _Me, MPI_COMM_WORLD);
   }
+
 }
 
 void EC_ClassiqueP::UpdateSecondMembre(int num_it)
@@ -660,3 +632,35 @@ std::vector<double> EC_ClassiqueP::UpdateSchwartzCF(std::vector<double> frontier
 
   return floc_k;
 }
+
+/*
+      string name_file2 = "comparaison.txt";
+
+      ofstream flux_compa;
+      flux_compa.open(name_file2, ios::out);
+      flux_compa << "# vtk DataFile Version 3.0" << endl
+	       << "cell" << endl
+	       << "ASCII" << endl
+	       << "DATASET STRUCTURED_POINTS" << endl
+	       << "DIMENSIONS " << _Nx << " " << _Ny << " 1" << endl
+	       << "ORIGIN 0 0 0" << endl
+	       << "SPACING " + to_string((_x_max-_x_min)/_Nx)+ " " + to_string((_y_max-_y_min)/_Ny) +" 1" << endl
+	       << "POINT_DATA " << _Nx*_Ny << endl
+	       << "SCALARS sample_scalars double" << endl
+	       << "LOOKUP_TABLE default" << endl;
+
+      for(int i=_Ny-1; i>=0; i--)
+	{
+	  for(int j=0; j<_Nx; j++)
+	    {
+	      double x = j*_h_y;
+	      double y = i*_h_x;
+
+	      //flux_compa << sol[j + i*_Nx] - ( x*x - x )*( y*y - y ) << " ";
+	      //flux_compa << sol[j + i*_Nx] - ( sin(x) + cos(y) )<<" ";
+	    }
+	  flux_compa << endl;
+	}
+      flux_compa.close();
+      */
+//Cette partie commentée nous a permis de comparer les résultats théoriques et numériques des solutions pour les cas avec un terme source polynomial et trigonometrique.
