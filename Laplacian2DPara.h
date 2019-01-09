@@ -41,7 +41,8 @@ class Laplacian2D // pas fini de modifier
     int _Me,_Np;
 
     Source _Source;
-    
+    int _chevauchement;
+
     std::string _save_all_file;
     std::string _save_points_file;
 
@@ -59,7 +60,15 @@ class Laplacian2D // pas fini de modifier
       std::vector<point> saved_points);
 
     void InitializeCL(CL CL_bas, CL CL_haut, CL CL_gauche, CL CL_droite, double Val_CL_bas, double Val_CL_haut, double Val_CL_gauche, double Val_CL_droite);
-
+    void Initialize(
+      double x_min, double x_max, 
+      double y_min, double y_max, 
+      int Nx, int Ny, double a, 
+      double deltaT, int Me, int Np, 
+      Source Source, int chevauchement, 
+      std::string save_all_file, std::string _save_points_file, 
+      std::vector<point> saved_points );
+    
     void UpdateCL(int num_it);
 
     virtual void InitializeMatrix() = 0;
@@ -72,7 +81,7 @@ class Laplacian2D // pas fini de modifier
 
     virtual void UpdateSecondMembre(int num_it) = 0;
 
-   // virtual void UpdateSchwartzCF(frontiere_haut, frontiere_bas) =0;
+    virtual std::vector<double> UpdateSchwartzCF(std::vector<double> frontiere_haut, std::vector<double> frontiere_bas) =0;
 
 };
 
@@ -84,7 +93,7 @@ class EC_ClassiqueP : public Laplacian2D
     void InitializeMatrix();
     void IterativeSolver(int nb_iterations);
     void UpdateSecondMembre(int num_it);
-    //void UpdateSchwartzCF(frontiere_haut, frontiere_bas);
+    std::vector<double> UpdateSchwartzCF(std::vector<double> frontiere_haut, std::vector<double> frontiere_bas);
 };
 
 #endif
