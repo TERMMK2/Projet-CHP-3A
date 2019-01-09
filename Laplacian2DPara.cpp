@@ -12,13 +12,13 @@ Laplacian2D::~Laplacian2D()
 }
 
 void Laplacian2D::Initialize(
-  double x_min, double x_max, 
-  double y_min, double y_max, 
-  int Nx, int Ny, double a, 
-  double deltaT, int Me, int Np, 
-  Source Source, int chevauchement, 
-  string save_all_file, string save_points_file, 
-  vector<point> saved_points)
+    double x_min, double x_max,
+    double y_min, double y_max,
+    int Nx, int Ny, double a,
+    double deltaT, int Me, int Np,
+    Source Source, int chevauchement,
+    string save_all_file, string save_points_file,
+    vector<point> saved_points)
 {
   // // On  initialise les constantes connues de tous les processeurs.
 
@@ -35,7 +35,7 @@ void Laplacian2D::Initialize(
   _Me = Me;
   _Np = Np;
   _Source = Source;
-  
+
   _save_all_file = save_all_file;
   _save_points_file = save_points_file;
 
@@ -142,7 +142,7 @@ void EC_ClassiqueP::InitializeMatrix()
     if (i > (_Nyloc - 1) * _Nx - 1)
       LapMat[4][i] = 0.;
   }
-  
+
   if (_CL_gauche == CL::NEUMANN or _CL_gauche == CL::NEUMANN_NON_CONSTANT)
   {
     for (int i = 0; i < _Nyloc; i++)
@@ -224,55 +224,52 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
   {
 
     //-------------PARTIE CONCERNANT LA SAUVEGARDE DE LA SOLUTION------------------------------------------
-     if (_save_all_file != "non")
-     	EC_ClassiqueP::SaveSol(_save_all_file+"/sol_it_"+to_string(i)+".vtk"); 
+    if (_save_all_file_enabled)
+      EC_ClassiqueP::SaveSol(_save_all_file + "/sol_it_" + to_string(iter) + ".vtk");
 
-     if ((_save_points_file != "non") and (_Me == 0)) 
-     	{
+    if ((_save_points_file_enabled) and (_Me == 0))
+    {
 
-     	  
-	    vector<double> sol;
-	  sol.resize(_Nx * _Ny);
-	  for (int i = 0; i < iN*_Nx; i++)
-	  {
-	    sol[i] = _solloc[i];
-	  }
+      vector<double> sol;
+      sol.resize(_Nx * _Ny);
+      for (int i = 0; i < iN * _Nx; i++)
+      {
+        sol[i] = _solloc[i];
+      }
 
-	  for (int he = 1; he < _Np; he++)
-	  {
-	    int he_i1, he_iN;
-	    charge(_Ny, _Np, he, he_i1, he_iN);
-	    vector<double> sol_temp;
-	    sol_temp.resize((he_iN - he_i1 + 1)*_Nx);
-	  
-	    MPI_Recv(&sol_temp[0], (he_iN - he_i1 + 1)*_Nx, MPI_DOUBLE, he, 100 * he, MPI_COMM_WORLD, &status);
-	  
-	    for (int i = he_i1*_Nx; i < he_iN*_Nx; i++)
-	   	{
-	    	  sol[i] = sol_temp[i - he_i1*_Nx];
-	   	}
-	   }
+      for (int he = 1; he < _Np; he++)
+      {
+        int he_i1, he_iN;
+        charge(_Ny, _Np, he, he_i1, he_iN);
+        vector<double> sol_temp;
+        sol_temp.resize((he_iN - he_i1 + 1) * _Nx);
 
-     	  *flux_pts<<i*_deltaT<<" ";
-     	  //char* truc = new char;
-     	  for (int j=0; j<_number_saved_points; j++)
-     	    {
-     	      int pos = floor(_saved_points[j][0]/_h_x) + _Nx*floor(_saved_points[j][1]/_h_y);
-     	      *flux_pts<<_sol[pos]<<" ";
-     	    }
-     	  *flux_pts<<endl;
-     	}
-     if ((_save_points_file != "non") and (_Me != 0))
-     	{
-     	  MPI_Send(&_solloc[0],(iN-i1+1)*_Nx,MPI_DOUBLE,0,100*_Me,MPI_COMM_WORLD);
-     	}
+        MPI_Recv(&sol_temp[0], (he_iN - he_i1 + 1) * _Nx, MPI_DOUBLE, he, 100 * he, MPI_COMM_WORLD, &status);
+
+        for (int i = he_i1 * _Nx; i < he_iN * _Nx; i++)
+        {
+          sol[i] = sol_temp[i - he_i1 * _Nx];
+        }
+      }
+
+      *flux_pts << i * _deltaT << " ";
+      //char* truc = new char;
+      for (const auto& p : _saved_points)
+      {
+        int pos = floor(p.first / _h_x) + _Nx * floor(p.second / _h_y);
+        *flux_pts << _sol[pos] << " ";
+      }
+      *flux_pts << endl;
+    }
+    if ((_save_points_file_enabled) and (_Me != 0))
+    {
+      MPI_Send(&_solloc[0], (iN - i1 + 1) * _Nx, MPI_DOUBLE, 0, 100 * _Me, MPI_COMM_WORLD);
+    }
     //----------------FIN DE LA SAUVEGARDE DE LA SOLUTION-----------------------------
 
     UpdateSecondMembre(iter);
 
     //------------------------------------------------------------------------
-
-    
 
     solloc_k = CG(_LapMatloc, _floc, solloc_km, 0.0000001, kmax, _Nx, _Nyloc);
 
@@ -293,7 +290,8 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
       frontiere_haut.resize(_Nx);
       frontiere_bas.resize(_Nx);
 
-      if (_Np > 1) {
+      if (_Np > 1)
+      {
         if (_Me == 0)
         {
           MPI_Send(&_solloc[(_Nyloc - 1) * _Nx - 1], _Nx, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
@@ -385,15 +383,17 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
   //   }
   // delete flux_pts;
 
-  if (_Me == 0)//Barre de chargement
-    { printf("\n");}
+  if (_Me == 0) //Barre de chargement
+  {
+    printf("\n");
+  }
 }
 
-  void Laplacian2D::SaveSol(const string& name_file)
-  {
-    // À refaire complètement -> à voir
+void Laplacian2D::SaveSol(const string &name_file)
+{
+  // À refaire complètement -> à voir
 
-    MPI_Status status;
+  MPI_Status status;
 
   int i1, iN;
   charge(_Ny, _Np, _Me, i1, iN);
@@ -401,7 +401,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
   {
     vector<double> sol;
     sol.resize(_Nx * _Ny);
-    for (int i = 0; i < iN*_Nx; i++)
+    for (int i = 0; i < iN * _Nx; i++)
     {
       vector<double> sol;
       sol.resize(_Nx * _Ny);
@@ -410,45 +410,45 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
         sol[i] = _solloc[i];
       }
 
-    for (int he = 1; he < _Np; he++)
-    {
-      int he_i1, he_iN;
-      charge(_Ny, _Np, he, he_i1, he_iN);
-      vector<double> sol_temp;
-      sol_temp.resize((he_iN - he_i1 + 1)*_Nx);
-
-      MPI_Recv(&sol_temp[0], (he_iN - he_i1 + 1)*_Nx, MPI_DOUBLE, he, 100 * he, MPI_COMM_WORLD, &status);
-
-      for (int i = he_i1*_Nx; i < he_iN*_Nx; i++)
+      for (int he = 1; he < _Np; he++)
       {
-        sol[i] = sol_temp[i - he_i1*_Nx];
-      }
+        int he_i1, he_iN;
+        charge(_Ny, _Np, he, he_i1, he_iN);
+        vector<double> sol_temp;
+        sol_temp.resize((he_iN - he_i1 + 1) * _Nx);
 
-      ofstream mon_flux;
-      mon_flux.open(name_file, ios::out);
-      mon_flux << "# vtk DataFile Version 3.0" << endl
-              << "cell" << endl
-              << "ASCII" << endl
-              << "DATASET STRUCTURED_POINTS" << endl
-              << "DIMENSIONS " << _Nx << " " << _Ny << " 1" << endl
-              << "ORIGIN 0 0 0" << endl
-              << "SPACING " + to_string((_x_max - _x_min) / _Nx) + " " + to_string((_y_max - _y_min) / _Ny) + " 1" << endl
-              << "POINT_DATA " << _Nx * _Ny << endl
-              << "SCALARS sample_scalars double" << endl
-              << "LOOKUP_TABLE default" << endl;
+        MPI_Recv(&sol_temp[0], (he_iN - he_i1 + 1) * _Nx, MPI_DOUBLE, he, 100 * he, MPI_COMM_WORLD, &status);
 
-      for (int i = _Ny - 1; i >= 0; i--)
-      {
-        for (int j = 0; j < _Nx; j++)
+        for (int i = he_i1 * _Nx; i < he_iN * _Nx; i++)
         {
-          mon_flux << sol[j + i * _Nx] << " ";
+          sol[i] = sol_temp[i - he_i1 * _Nx];
         }
-        mon_flux << endl;
-      }
 
-      mon_flux.close();
+        ofstream mon_flux;
+        mon_flux.open(name_file, ios::out);
+        mon_flux << "# vtk DataFile Version 3.0" << endl
+                 << "cell" << endl
+                 << "ASCII" << endl
+                 << "DATASET STRUCTURED_POINTS" << endl
+                 << "DIMENSIONS " << _Nx << " " << _Ny << " 1" << endl
+                 << "ORIGIN 0 0 0" << endl
+                 << "SPACING " + to_string((_x_max - _x_min) / _Nx) + " " + to_string((_y_max - _y_min) / _Ny) + " 1" << endl
+                 << "POINT_DATA " << _Nx * _Ny << endl
+                 << "SCALARS sample_scalars double" << endl
+                 << "LOOKUP_TABLE default" << endl;
 
-    /*
+        for (int i = _Ny - 1; i >= 0; i--)
+        {
+          for (int j = 0; j < _Nx; j++)
+          {
+            mon_flux << sol[j + i * _Nx] << " ";
+          }
+          mon_flux << endl;
+        }
+
+        mon_flux.close();
+
+        /*
       string name_file2 = "comparaison.txt";
 
       ofstream flux_compa;
@@ -478,183 +478,182 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 	}
       flux_compa.close();
       */
-    //Cette partie commentée nous a permis de comparer les résultats théoriques et numériques des solutions pour les cas avec un terme source polynomial et trigonometrique.
-  }
-  else
-  {
-    MPI_Send(&_solloc[0], (iN - i1 + 1)*_Nx, MPI_DOUBLE, 0, 100 * _Me, MPI_COMM_WORLD);
-  }
-}
-
-void EC_ClassiqueP::UpdateSecondMembre(int num_it)
-{
-  // Cette méthode nous permet de mettre à jours le terme source à chaque itération
-  //pour prendre en compte les effets des conditions limites et le terme source
-
-  //------------------
-  //CL
-  //------------------
-  double gamma = -_a * _deltaT / (_h_y * _h_y);
-  double beta = -_a * _deltaT / (_h_x * _h_x);
-
-  int i1, iN;
-  charge(_Ny, _Np, _Me, i1, iN);
-
-  _floc = _solloc;
-
-  if ((_CL_haut == CL::DIRICHLET) and (_Me == 0)) //Condition de température en haut
-  {
-    for (int j = 0; j < _Nx; j++)
-    {
-      _floc[j] = _solloc[j] - gamma * _Val_CL_haut;
-    }
-  }
-  if ((_CL_bas == CL::DIRICHLET) and (_Me == _Np - 1)) //Condition de température en bas
-  {
-    for (int j = 0; j < _Nx; j++)
-    {
-      _floc[_Nx * (_Nyloc - 1) + j] = _solloc[_Nx * (_Nyloc - 1) + j] - gamma * _Val_CL_bas;
-    }
-  }
-  if (_CL_gauche == CL::DIRICHLET) //Condition de température à gauche
-  {
-    for (int i = 0; i < _Nyloc; i++)
-    {
-      _floc[i * _Nx] = _solloc[i * _Nx] - beta * _Val_CL_gauche;
-    }
-  }
-  if (_CL_droite == CL::DIRICHLET) //Condition de température à droite
-  {
-    for (int i = 0; i < _Nyloc; i++)
-    {
-      _floc[(i + 1) * _Nx - 1] = _solloc[(i + 1) * _Nx - 1] - beta * _Val_CL_droite; //i*_Nx+(_Nx-1)
-    }
-  }
-  if ((_CL_haut == CL::NEUMANN) and (_Me == 0)) //Condition de flux en haut
-  {
-    for (int j = 0; j < _Nx; j++)
-    {
-      _floc[j] = _solloc[j] - gamma * _Val_CL_haut * _h_y;
-    }
-  }
-  if ((_CL_bas == CL::NEUMANN) and (_Me == _Np - 1)) //Condition de flux en bas
-  {
-    for (int j = 0; j < _Nx; j++)
-    {
-      _floc[_Nx * (_Nyloc - 1) + j] = _solloc[_Nx * (_Nyloc - 1) + j] - gamma * _Val_CL_bas * _h_y;
-    }
-  }
-  if (_CL_gauche == CL::NEUMANN) //Condition de flux à gauche
-  {
-    for (int i = 0; i < _Nyloc; i++)
-    {
-      _floc[i * _Nx] = _solloc[i * _Nx] - beta * _Val_CL_gauche * _h_x;
-    }
-  }
-  if (_CL_gauche == CL::NEUMANN_NON_CONSTANT) //Condition de flux à gauche
-  {
-    Laplacian2D::UpdateCL(num_it);
-    for (int i = 0; i < _Nyloc; i++)
-    {
-      _floc[i * _Nx] = _solloc[i * _Nx] - beta * _Val_CL_gauche * _h_x;
-    }
-  }
-  if (_CL_droite == CL::NEUMANN) //Condition de flux à droite
-  {
-    for (int i = 0; i < _Nyloc; i++)
-    {
-      _floc[(i + 1) * _Nx - 1] = _solloc[(i + 1) * _Nx - 1] - beta * _Val_CL_droite * _h_x; //i*_Nx+(_Nx-1)
-    }
-  }
-  if (_Source == Source::TRIGONOMETRIQUE)
-  {
-    if (_Me == 0)
-    {
-      for (int j = 0; j < _Nx; j++) // En haut
+        //Cette partie commentée nous a permis de comparer les résultats théoriques et numériques des solutions pour les cas avec un terme source polynomial et trigonometrique.
+      }
+      else
       {
-        double x = (j % _Nx) * _h_x;
-        double y = 0.;
-        _floc[j] = _solloc[j] - gamma * (sin(x) + cos(y));
+        MPI_Send(&_solloc[0], (iN - i1 + 1) * _Nx, MPI_DOUBLE, 0, 100 * _Me, MPI_COMM_WORLD);
       }
     }
-    if (_Me == _Np - 1)
+
+    void EC_ClassiqueP::UpdateSecondMembre(int num_it)
     {
-      for (int j = 0; j < _Nx; j++) // En bas
+      // Cette méthode nous permet de mettre à jours le terme source à chaque itération
+      //pour prendre en compte les effets des conditions limites et le terme source
+
+      //------------------
+      //CL
+      //------------------
+      double gamma = -_a * _deltaT / (_h_y * _h_y);
+      double beta = -_a * _deltaT / (_h_x * _h_x);
+
+      int i1, iN;
+      charge(_Ny, _Np, _Me, i1, iN);
+
+      _floc = _solloc;
+
+      if ((_CL_haut == CL::DIRICHLET) and (_Me == 0)) //Condition de température en haut
       {
-        double x = ((_Nx * (_Nyloc - 1) + j) % _Nx) * _h_x;
-        double y = _y_max;
-        _floc[_Nx * (_Nyloc - 1) + j] = _solloc[_Nx * (_Nyloc - 1) + j] - gamma * (sin(x) + cos(y));
+        for (int j = 0; j < _Nx; j++)
+        {
+          _floc[j] = _solloc[j] - gamma * _Val_CL_haut;
+        }
+      }
+      if ((_CL_bas == CL::DIRICHLET) and (_Me == _Np - 1)) //Condition de température en bas
+      {
+        for (int j = 0; j < _Nx; j++)
+        {
+          _floc[_Nx * (_Nyloc - 1) + j] = _solloc[_Nx * (_Nyloc - 1) + j] - gamma * _Val_CL_bas;
+        }
+      }
+      if (_CL_gauche == CL::DIRICHLET) //Condition de température à gauche
+      {
+        for (int i = 0; i < _Nyloc; i++)
+        {
+          _floc[i * _Nx] = _solloc[i * _Nx] - beta * _Val_CL_gauche;
+        }
+      }
+      if (_CL_droite == CL::DIRICHLET) //Condition de température à droite
+      {
+        for (int i = 0; i < _Nyloc; i++)
+        {
+          _floc[(i + 1) * _Nx - 1] = _solloc[(i + 1) * _Nx - 1] - beta * _Val_CL_droite; //i*_Nx+(_Nx-1)
+        }
+      }
+      if ((_CL_haut == CL::NEUMANN) and (_Me == 0)) //Condition de flux en haut
+      {
+        for (int j = 0; j < _Nx; j++)
+        {
+          _floc[j] = _solloc[j] - gamma * _Val_CL_haut * _h_y;
+        }
+      }
+      if ((_CL_bas == CL::NEUMANN) and (_Me == _Np - 1)) //Condition de flux en bas
+      {
+        for (int j = 0; j < _Nx; j++)
+        {
+          _floc[_Nx * (_Nyloc - 1) + j] = _solloc[_Nx * (_Nyloc - 1) + j] - gamma * _Val_CL_bas * _h_y;
+        }
+      }
+      if (_CL_gauche == CL::NEUMANN) //Condition de flux à gauche
+      {
+        for (int i = 0; i < _Nyloc; i++)
+        {
+          _floc[i * _Nx] = _solloc[i * _Nx] - beta * _Val_CL_gauche * _h_x;
+        }
+      }
+      if (_CL_gauche == CL::NEUMANN_NON_CONSTANT) //Condition de flux à gauche
+      {
+        Laplacian2D::UpdateCL(num_it);
+        for (int i = 0; i < _Nyloc; i++)
+        {
+          _floc[i * _Nx] = _solloc[i * _Nx] - beta * _Val_CL_gauche * _h_x;
+        }
+      }
+      if (_CL_droite == CL::NEUMANN) //Condition de flux à droite
+      {
+        for (int i = 0; i < _Nyloc; i++)
+        {
+          _floc[(i + 1) * _Nx - 1] = _solloc[(i + 1) * _Nx - 1] - beta * _Val_CL_droite * _h_x; //i*_Nx+(_Nx-1)
+        }
+      }
+      if (_Source == Source::TRIGONOMETRIQUE)
+      {
+        if (_Me == 0)
+        {
+          for (int j = 0; j < _Nx; j++) // En haut
+          {
+            double x = (j % _Nx) * _h_x;
+            double y = 0.;
+            _floc[j] = _solloc[j] - gamma * (sin(x) + cos(y));
+          }
+        }
+        if (_Me == _Np - 1)
+        {
+          for (int j = 0; j < _Nx; j++) // En bas
+          {
+            double x = ((_Nx * (_Nyloc - 1) + j) % _Nx) * _h_x;
+            double y = _y_max;
+            _floc[_Nx * (_Nyloc - 1) + j] = _solloc[_Nx * (_Nyloc - 1) + j] - gamma * (sin(x) + cos(y));
+          }
+        }
+        for (int i = 0; i < _Nyloc; i++) // A gauche
+        {
+          double x = 0.;
+          double y = ((i * _Nx) / _Nx + i1) * _h_y;
+          _floc[i * _Nx] = _solloc[i * _Nx] - beta * (sin(x) + cos(y));
+        }
+        for (int i = 0; i < _Nyloc; i++) // A droite
+        {
+          double x = _x_max;
+          double y = (((i + 1) * _Nx - 1) / _Nx + i1) * _h_y;
+          _floc[(i + 1) * _Nx - 1] = _solloc[(i + 1) * _Nx - 1] - beta * (sin(x) + cos(y));
+        }
+      }
+
+      //------------------
+      //Source Term
+      //------------------
+      for (int k = 0; k < _Nyloc * _Nx; k++)
+      {
+        double x = (k % _Nx) * _h_x;
+        double y = (k / _Nx + i1) * _h_y;
+
+        if (_Source == Source::POLYNOMIAL)
+        {
+          _floc[k] = _floc[k] + 2 * _deltaT * (y - y * y + x - x * x);
+        }
+        if (_Source == Source::TRIGONOMETRIQUE)
+        {
+          _floc[k] = _floc[k] + _deltaT * (sin(x) + cos(y));
+        }
+        if (_Source == Source::INSTATIONNAIRE)
+        {
+          _floc[k] = _floc[k] + _deltaT * exp(-(x / 2.) * (x / 2.)) * exp(-(y / 2) * (y / 2)) * cos(M_PI * num_it * _deltaT / 2.);
+        }
       }
     }
-    for (int i = 0; i < _Nyloc; i++) // A gauche
+
+    std::vector<double> EC_ClassiqueP::UpdateSchwartzCF(std::vector<double> frontiere_haut, std::vector<double> frontiere_bas)
     {
-      double x = 0.;
-      double y = ((i * _Nx) / _Nx + i1) * _h_y;
-      _floc[i * _Nx] = _solloc[i * _Nx] - beta * (sin(x) + cos(y));
+      //Cette methode permet de mettre à jour floc pour prendre en compte l'évolution des conditions à la frontiere entre les procs dans la boucle de schwartz
+      std::vector<double> floc_k = _floc;
+
+      double gamma = -_a * _deltaT / (_h_y * _h_y);
+
+      if ((_Me == 0) and (_Me < _Np - 1))
+      {
+        for (int j = 0; j < _Nx; j++)
+        {
+          floc_k[_Nx * (_Nyloc - 1) + j] = _floc[_Nx * (_Nyloc - 1) + j] - gamma * frontiere_bas[j];
+          floc_k[j] = _floc[j] - gamma * frontiere_haut[j];
+        }
+      }
+
+      if (_Me == 0)
+      {
+        for (int j = 0; j < _Nx; j++)
+        {
+          floc_k[_Nx * (_Nyloc - 1) + j] = _floc[_Nx * (_Nyloc - 1) + j] - gamma * frontiere_bas[j];
+        }
+      }
+
+      if (_Me == _Np - 1)
+      {
+        for (int j = 0; j < _Nx; j++)
+        {
+          floc_k[j] = _floc[j] - gamma * frontiere_haut[j];
+        }
+      }
+
+      return floc_k;
     }
-    for (int i = 0; i < _Nyloc; i++) // A droite
-    {
-      double x = _x_max;
-      double y = (((i + 1) * _Nx - 1) / _Nx + i1) * _h_y;
-      _floc[(i + 1) * _Nx - 1] = _solloc[(i + 1) * _Nx - 1] - beta * (sin(x) + cos(y));
-    }
-  }
-
-  //------------------
-  //Source Term
-  //------------------
-  for (int k = 0; k < _Nyloc * _Nx; k++)
-  {
-    double x = (k % _Nx) * _h_x;
-    double y = (k / _Nx + i1) * _h_y;
-
-    if (_Source == Source::POLYNOMIAL)
-    {
-      _floc[k] = _floc[k] + 2 * _deltaT * (y - y * y + x - x * x);
-    }
-    if (_Source == Source::TRIGONOMETRIQUE)
-    {
-      _floc[k] = _floc[k] + _deltaT * (sin(x) + cos(y));
-    }
-    if (_Source == Source::INSTATIONNAIRE)
-    {
-      _floc[k] = _floc[k] + _deltaT * exp(-(x / 2.) * (x / 2.)) * exp(-(y / 2) * (y / 2)) * cos(M_PI * num_it * _deltaT / 2.);
-    }
-  }
-}
-
-std::vector<double> EC_ClassiqueP::UpdateSchwartzCF(std::vector<double> frontiere_haut, std::vector<double> frontiere_bas)
-{
-  //Cette methode permet de mettre à jour floc pour prendre en compte l'évolution des conditions à la frontiere entre les procs dans la boucle de schwartz
-  std::vector<double> floc_k = _floc;
-
-  double gamma = -_a * _deltaT / (_h_y * _h_y);
-
-  if ((_Me == 0) and (_Me < _Np - 1))
-  {
-    for (int j = 0; j < _Nx; j++)
-    {
-      floc_k[_Nx * (_Nyloc - 1) + j] = _floc[_Nx * (_Nyloc - 1) + j] - gamma * frontiere_bas[j];
-      floc_k[j] = _floc[j] - gamma * frontiere_haut[j];
-    }
-  }
-
-  if (_Me == 0)
-  {
-    for (int j = 0; j < _Nx; j++)
-    {
-      floc_k[_Nx * (_Nyloc - 1) + j] = _floc[_Nx * (_Nyloc - 1) + j] - gamma * frontiere_bas[j];
-    }
-  }
-
-  if (_Me == _Np - 1)
-  {
-    for (int j = 0; j < _Nx; j++)
-    {
-      floc_k[j] = _floc[j] - gamma * frontiere_haut[j];
-    }
-  }
-
-  return floc_k;
-}
-
