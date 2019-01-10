@@ -102,52 +102,46 @@ void Laplacian2D::UpdateCL(int num_it)
 
 void EC_ClassiqueP::InitializeMatrix()
 {
-  // // On initialise la matrice pentadiagonale ici.
+  // On initialise la matrice pentadiagonale ici.
 
-  vector<vector<double>> LapMat;
-  LapMat.resize(5);
+  _LapMatloc.resize(5);
   int Nloc = _Nx * _Nyloc;
-  // _Ny à changer en _Nyloc ( et de même pour _Nx dans les cas exotiques)
 
   double alpha = 1 + 2 * _a * _deltaT / (_h_x * _h_x) + 2 * _a * _deltaT / (_h_y * _h_y);
   double beta = -_a * _deltaT / (_h_x * _h_x);
   double gamma = -_a * _deltaT / (_h_y * _h_y);
 
-  // double alpha = 20;
-  // double beta = 4;
-  // double gamma = 5;
-
   for (int i = 0; i < 5; i++)
   {
-    LapMat[i].resize(Nloc);
+    _LapMatloc[i].resize(Nloc);
   }
 
   for (int i = 0; i < Nloc; i++)
   {
-    LapMat[0][i] = gamma;
-    LapMat[1][i] = beta;
-    LapMat[2][i] = alpha;
-    LapMat[3][i] = beta;
-    LapMat[4][i] = gamma;
+    _LapMatloc[0][i] = gamma;
+    _LapMatloc[1][i] = beta;
+    _LapMatloc[2][i] = alpha;
+    _LapMatloc[3][i] = beta;
+    _LapMatloc[4][i] = gamma;
 
     if (i % _Nx == 0)
-      LapMat[1][i] = 0.;
+      _LapMatloc[1][i] = 0.;
 
     if (i % _Nx == _Nx - 1)
-      LapMat[3][i] = 0.;
+      _LapMatloc[3][i] = 0.;
 
     if (i < _Nx)
-      LapMat[0][i] = 0.;
+      _LapMatloc[0][i] = 0.;
 
     if (i > (_Nyloc - 1) * _Nx - 1)
-      LapMat[4][i] = 0.;
+      _LapMatloc[4][i] = 0.;
   }
 
   if (_CL_gauche == CL::NEUMANN or _CL_gauche == CL::NEUMANN_NON_CONSTANT)
   {
     for (int i = 0; i < _Nyloc; i++)
     {
-      LapMat[2][_Nx * i] += beta; //Bord gauche
+      _LapMatloc[2][_Nx * i] += beta; //Bord gauche
     }
   }
 
@@ -155,7 +149,7 @@ void EC_ClassiqueP::InitializeMatrix()
   {
     for (int i = 0; i < _Nyloc; i++)
     {
-      LapMat[2][_Nx * (i + 1) - 1] += beta; //Bord droit
+      _LapMatloc[2][_Nx * (i + 1) - 1] += beta; //Bord droit
     }
   }
 
@@ -163,7 +157,7 @@ void EC_ClassiqueP::InitializeMatrix()
   {
     for (int i = 0; i < _Nx; i++)
     {
-      LapMat[2][i] += gamma; //Bord haut
+      _LapMatloc[2][i] += gamma; //Bord haut
     }
   }
 
@@ -171,43 +165,32 @@ void EC_ClassiqueP::InitializeMatrix()
   {
     for (int i = 0; i < _Nx; i++)
     {
-      LapMat[2][(_Nyloc - 1) * _Nx + i] += gamma; //Bord bas
+      _LapMatloc[2][(_Nyloc - 1) * _Nx + i] += gamma; //Bord bas
     }
   }
-  //--------------------------------------------------------------------
-  //On découpe la matrice en vecteur local
 
-  _LapMatloc.resize(5);
-
-  for (int i = 0; i < 5; i++)
-  {
-    _LapMatloc[i].resize(_Nyloc + 1);
-    _LapMatloc[i] = vectorsplit(LapMat[i]);
-  }
 }
-//--------------------------------------------------------------------
-//On découpe la matrice en vecteur local
 
 void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 {
-  // // Cette méthode est au coeur de la résolution du problème, elle permet d'effectuer la marche en temps
+  //  Cette méthode est au coeur de la résolution du problème, elle permet d'effectuer la marche en temps
 
   MPI_Status status;
 
   int Nloc = _Nx * _Nyloc;
 
   //initialisation schwartz
-  std::vector<double> solloc_k;
-  std::vector<double> solloc_km(_solloc);
+  std::vector<double> solloc_km;
+  std::vector<double> solloc_k(_solloc);
   std::vector<double> floc_k;
-  solloc_k.resize(Nloc);
+  solloc_km.resize(Nloc);
   floc_k.resize(Nloc);
 
   double norme;
-  int kmax = Nloc + 100; //Pour l'algo du GC : Pour une matrice de taille n le GC met max n étapes en théorie, comme on veut être sûr qu'il converge on prend une petite marge
+  int kmax = Nloc + 100; //Pour l'algo du GC : Pour une matrice de taille
+  //n le GC met max n étapes en théorie, comme on veut être sûr qu'il converge on prend une petite marge
 
-  //Sauvegarde d'un points ou plusieurs points particuliers au cours du temps:------------------------------------------------------------------------------------
-  // à voir plus tard
+  //Sauvegarde d'un point ou plusieurs points particulier au cours du temps:------------------------------------------------------------------------------------
 
   ofstream flux_pts;
   vector<double> _sol;
@@ -257,7 +240,6 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
       }
 
       flux_pts << iter * _deltaT << " ";
-      //char* truc = new char;
       for (const auto &p : _saved_points)
       {
         const int pos = floor(p.first / _h_x) + _Nx * floor(p.second / _h_y);
@@ -275,83 +257,79 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
     //------------------------------------------------------------------------
 
-    solloc_k = CG(_LapMatloc, _floc, solloc_km, 0.0000001, kmax, _Nx, _Nyloc);
-
     double condition_arret = 1.; //juste pour rentrer une première fois dans la boucle. Changeable en sa valeur réelle mais plus long pour pas grand chose?
     double condition_arret_loc = 0.;
     const double epsilon = 0.0001; //valeur arbitraire pour l'instant
 
-    //-debut boucle schwartz
+    //-------------------debut boucle schwartz--------------------------------
 
     while (condition_arret > epsilon) //condition d'arrêt de la boucle de Schwartz
     {
-
-      //if (_Me == 0)
-      //std::cout << "Cond = " << condition_arret << std::endl;
-
-      std::vector<double> frontiere_haut;
-      std::vector<double> frontiere_bas;
-      frontiere_haut.resize(_Nx);
-      frontiere_bas.resize(_Nx);
+      std::vector<double> frontiere_haut(_Nx, 0.);
+      std::vector<double> frontiere_bas(_Nx, 0.);
 
       if (_Np > 1)
       {
         if (_Me == 0)
         {
-          MPI_Send(&_solloc[(_Nyloc - 1) * _Nx - 1], _Nx, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
-          MPI_Recv(&frontiere_bas[0], _Nx, MPI_DOUBLE, 1, 100, MPI_COMM_WORLD, &status);
+          MPI_Send(&_solloc[(_Nyloc - 1) * _Nx], _Nx, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
+          MPI_Recv(&frontiere_bas[0], _Nx, MPI_DOUBLE, 1, 1000, MPI_COMM_WORLD, &status);
         }
 
-        for (int he = 1; he < _Np - 1; he++) //à changer
+        for (int he = 1; he < _Np - 1; he++)
         {
           if (_Me == he)
           {
-            MPI_Send(&_solloc[0], _Nx, MPI_DOUBLE, he - 1, 100 * _Me, MPI_COMM_WORLD);
+            MPI_Send(&_solloc[0], _Nx, MPI_DOUBLE, he - 1, 1000 * _Me, MPI_COMM_WORLD);
             MPI_Recv(&frontiere_haut[0], _Nx, MPI_DOUBLE, he - 1, 100 * (he - 1), MPI_COMM_WORLD, &status);
-            MPI_Send(&_solloc[(_Nyloc - 1) * _Nx - 1], _Nx, MPI_DOUBLE, he + 1, 100 * _Me, MPI_COMM_WORLD);
-            MPI_Recv(&frontiere_bas[0], _Nx, MPI_DOUBLE, he + 1, 100 * (he + 1), MPI_COMM_WORLD, &status);
+            MPI_Send(&_solloc[(_Nyloc - 1) * _Nx], _Nx, MPI_DOUBLE, he + 1, 100 * _Me, MPI_COMM_WORLD);
+            MPI_Recv(&frontiere_bas[0], _Nx, MPI_DOUBLE, he + 1, 1000 * (he + 1), MPI_COMM_WORLD, &status);
           }
         }
 
         if (_Me == _Np - 1)
         {
-          MPI_Send(&_solloc[0], _Nx, MPI_DOUBLE, _Np - 2, 100 * _Me, MPI_COMM_WORLD);
+          MPI_Send(&_solloc[0], _Nx, MPI_DOUBLE, _Np - 2, 1000 * _Me, MPI_COMM_WORLD);
           MPI_Recv(&frontiere_haut[0], _Nx, MPI_DOUBLE, _Np - 2, 100 * (_Np - 2), MPI_COMM_WORLD, &status);
         }
       }
 
       floc_k = UpdateSchwartzCF(frontiere_haut, frontiere_bas);
-      //update CF schwartz dans floc
+
       solloc_km = solloc_k;
 
       solloc_k = CG(_LapMatloc, floc_k, solloc_km, 0.0000001, kmax, _Nx, _Nyloc);
 
       condition_arret = 0.0;
       condition_arret_loc = 0.0;
-      std::vector<double> vect_loc(_Nyloc, 0.);
+      std::vector<double> vect_loc(_Nx, 0.);
 
       if (_Me == 0)
       {
-        for (int i = 0; i < _Nyloc; i++)
+        for (int j = 0; j < _Nx; j++)
         {
-          vect_loc[i] += solloc_k[_Nx * (_Nyloc - 1) + i] - solloc_km[_Nx * (_Nyloc - 1) + i];
+          vect_loc[j] = solloc_k[_Nx * (_Nyloc - 1) + j] - solloc_km[_Nx * (_Nyloc - 1) + j];
         }
         condition_arret_loc += sqrt(dot(vect_loc, vect_loc));
       }
-      else if (_Me == _Np)
+      else if (_Me == _Np - 1)
       {
-        for (int i = 0; i < _Nyloc; i++)
+        for (int j = 0; j < _Nx; j++)
         {
-          vect_loc[i] += solloc_k[i] - solloc_km[i];
+          vect_loc[j] = solloc_k[j] - solloc_km[j];
         }
         condition_arret_loc += sqrt(dot(vect_loc, vect_loc));
       }
       else
       {
-        for (int i = 0; i < _Nyloc; i++)
+        for (int j = 0; j < _Nx; j++)
         {
-          vect_loc[i] += solloc_k[i] - solloc_km[i];
-          vect_loc[i] += solloc_k[_Nx * (_Nyloc - 1) + i] - solloc_km[_Nx * (_Nyloc - 1) + i];
+          vect_loc[j] = solloc_k[j] - solloc_km[j];
+        }
+        condition_arret_loc += sqrt(dot(vect_loc, vect_loc));
+        for (int j = 0; j < _Nx; j++)
+        {
+          vect_loc[j] = solloc_k[_Nx * (_Nyloc - 1) + j] - solloc_km[_Nx * (_Nyloc - 1) + j];
         }
         condition_arret_loc += sqrt(dot(vect_loc, vect_loc));
       }
@@ -600,7 +578,7 @@ std::vector<double> EC_ClassiqueP::UpdateSchwartzCF(std::vector<double> frontier
 
   double gamma = -_a * _deltaT / (_h_y * _h_y);
 
-  if ((_Me == 0) and (_Me < _Np - 1))
+  if ((_Me > 0) and (_Me < _Np - 1))
   {
     for (int j = 0; j < _Nx; j++)
     {
