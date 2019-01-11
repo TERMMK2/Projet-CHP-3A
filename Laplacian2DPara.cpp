@@ -457,10 +457,7 @@ void EC_ClassiqueP::UpdateSecondMembre(int num_it)
   charge(_Ny, _Np, _Me, i1, iN);
   if (_Me != _Np-1){
     iN += _chevauchement;
-    _Nyloc = iN - i1 + 1;
   }
-  else
-    _Nyloc = iN - i1 + 1;
 
   _floc = _solloc;
 
