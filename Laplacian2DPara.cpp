@@ -428,6 +428,11 @@ void Laplacian2D::SaveSol(const string &name_file)
     {
       for (int j = 0; j < _Nx; j++)
       {
+        // double x = j*_h_y;
+        // double y = i*_h_x;
+        // mon_flux << sol[j + i * _Nx] - ( x*x - x )*( y*y - y ) << " ";
+        // mon_flux << sol[j + i*_Nx] - ( sin(x) + cos(y) ) << " ";
+
         mon_flux << sol[j + i * _Nx] << " ";
       }
       mon_flux << endl;
