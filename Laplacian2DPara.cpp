@@ -35,6 +35,7 @@ void Laplacian2D::Initialize(
   _Me = Me;
   _Np = Np;
   _Source = Source;
+  _chevauchement = chevauchement;
 
   _save_all_file = save_all_file;
   _save_points_file = save_points_file;
@@ -52,7 +53,13 @@ void Laplacian2D::Initialize(
 
   int i1, iN;
   charge(_Ny, _Np, _Me, i1, iN);
-  _Nyloc = iN - i1 + 1;
+  if (_Me != _Np-1){
+    iN += _chevauchement;
+    _Nyloc = iN - i1 + 1;
+  }
+  else
+    _Nyloc = iN - i1 + 1;
+
 
   //à modifier potentiellement pour savesol et save_points
 }
@@ -272,7 +279,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
       {
         if (_Me == 0)
         {
-          MPI_Send(&_solloc[(_Nyloc - 1) * _Nx], _Nx, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
+          MPI_Send(&_solloc[(_Nyloc - 1 - _chevauchement) * _Nx], _Nx, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
           MPI_Recv(&frontiere_bas[0], _Nx, MPI_DOUBLE, 1, 1000, MPI_COMM_WORLD, &status);
         }
 
@@ -280,16 +287,17 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
         {
           if (_Me == he)
           {
-            MPI_Send(&_solloc[0], _Nx, MPI_DOUBLE, he - 1, 1000 * _Me, MPI_COMM_WORLD);
+            MPI_Send(&_solloc[_chevauchement], _Nx, MPI_DOUBLE, he - 1, 1000 * _Me, MPI_COMM_WORLD);
             MPI_Recv(&frontiere_haut[0], _Nx, MPI_DOUBLE, he - 1, 100 * (he - 1), MPI_COMM_WORLD, &status);
-            MPI_Send(&_solloc[(_Nyloc - 1) * _Nx], _Nx, MPI_DOUBLE, he + 1, 100 * _Me, MPI_COMM_WORLD);
+
+            MPI_Send(&_solloc[(_Nyloc - 1 - _chevauchement) * _Nx], _Nx, MPI_DOUBLE, he + 1, 100 * _Me, MPI_COMM_WORLD);
             MPI_Recv(&frontiere_bas[0], _Nx, MPI_DOUBLE, he + 1, 1000 * (he + 1), MPI_COMM_WORLD, &status);
           }
         }
 
         if (_Me == _Np - 1)
         {
-          MPI_Send(&_solloc[0], _Nx, MPI_DOUBLE, _Np - 2, 1000 * _Me, MPI_COMM_WORLD);
+          MPI_Send(&_solloc[_chevauchement], _Nx, MPI_DOUBLE, _Np - 2, 1000 * _Me, MPI_COMM_WORLD);
           MPI_Recv(&frontiere_haut[0], _Nx, MPI_DOUBLE, _Np - 2, 100 * (_Np - 2), MPI_COMM_WORLD, &status);
         }
       }
@@ -447,6 +455,12 @@ void EC_ClassiqueP::UpdateSecondMembre(int num_it)
 
   int i1, iN;
   charge(_Ny, _Np, _Me, i1, iN);
+  if (_Me != _Np-1){
+    iN += _chevauchement;
+    _Nyloc = iN - i1 + 1;
+  }
+  else
+    _Nyloc = iN - i1 + 1;
 
   _floc = _solloc;
 
