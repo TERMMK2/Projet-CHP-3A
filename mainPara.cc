@@ -52,27 +52,27 @@ int main(int argc, char *argv[])
   //MPI_Status status;
 
   MPI_Init(NULL, NULL);
-  
+
   int Me, Np;
   MPI_Comm_size(MPI_COMM_WORLD, &Np); // get totalnodes
   MPI_Comm_rank(MPI_COMM_WORLD, &Me);
 
-  const int Nx = getenv_var<int>(VAR_NX, 30);
-  const int Ny = getenv_var<int>(VAR_NY, 30);
+  const int Nx = getenv_var<int>(VAR_NX, 100);
+  const int Ny = getenv_var<int>(VAR_NY, 100);
 
   // Truc machin biduletest
 
   const double xmin = getenv_var<double>(VAR_XMIN, 0.0);
-  const double xmax = getenv_var<double>(VAR_XMAX, 0.04);
+  const double xmax = getenv_var<double>(VAR_XMAX, 1.);
   const double ymin = getenv_var<double>(VAR_YMIN, 0.0);
-  const double ymax = getenv_var<double>(VAR_YMAX, 0.005);
+  const double ymax = getenv_var<double>(VAR_YMAX, 1.);
 
-  const int chevauchement = getenv_var<int>(VAR_CHEVAUCHEMENT, 0);
+  const int chevauchement = getenv_var<int>(VAR_CHEVAUCHEMENT, 10);
 
 //---
-  double a = 1. / (1500. * 1000.); //Mettre 1. si on fait les cas tests de l'énoncé et 1./(1500.*1000.) si on veut comparer avec notre TER.
-  double deltaT = getenv_var<double>(VAR_DT, 0.05);
-  double tfinal = getenv_var<double>(VAR_T_FINAL, 100.0);
+  double a = 1.; //Mettre 1. si on fait les cas tests de l'énoncé et 1./(1500.*1000.) si on veut comparer avec notre TER.
+  double deltaT = getenv_var<double>(VAR_DT, 0.001);
+  double tfinal = getenv_var<double>(VAR_T_FINAL, 1.0);
 
   const Laplacian2D::CL CL_bas = getenv_var<Laplacian2D::CL>(VAR_CL_BAS, Laplacian2D::CL::DIRICHLET);
   const Laplacian2D::CL CL_haut = getenv_var<Laplacian2D::CL>(VAR_CL_HAUT, Laplacian2D::CL::DIRICHLET);
@@ -83,18 +83,18 @@ int main(int argc, char *argv[])
 
   const double Val_CL_bas = getenv_var<double>(VAR_VAL_CL_BAS, 0.0);
   const double Val_CL_haut = getenv_var<double>(VAR_VAL_CL_HAUT, 0.0);
-  const double Val_CL_gauche = getenv_var<double>(VAR_VAL_CL_GAUCHE, 1000.0);
+  const double Val_CL_gauche = getenv_var<double>(VAR_VAL_CL_GAUCHE, 0.0);
   const double Val_CL_droite = getenv_var<double>(VAR_VAL_CL_DROITE, 0.0);
 
   int nb_iterations = int(ceil(tfinal / deltaT));
   //Peut prendre comme valeur "non", "polynomial", "trigonometrique" ou "instationnaire".
-  Laplacian2D::Source Source = getenv_var<Laplacian2D::Source>(VAR_SOURCE, Laplacian2D::Source::NON); 
+  Laplacian2D::Source Source = getenv_var<Laplacian2D::Source>(VAR_SOURCE, Laplacian2D::Source::POLYNOMIAL);
 
-  double CI = 293.;
+  double CI = 1.;
 
-  string save_all_file = getenv_var<std::string>(VAR_SAVE_ALL_FILE, "TER"); //Mettre "non" si on ne souhaite pas enregistrer la solution globale au cours du temps sous une forme lisible par paraview
+  string save_all_file = getenv_var<std::string>(VAR_SAVE_ALL_FILE, "SCHWARZ"); //Mettre "non" si on ne souhaite pas enregistrer la solution globale au cours du temps sous une forme lisible par paraview
 
-  string save_points_file = getenv_var<std::string>(VAR_SAVE_POINTS_FILE, "points_TER"); //Mettre non si on ne veut pas sauvegarder la température au cours du temps en des points paritculiers
+  string save_points_file = getenv_var<std::string>(VAR_SAVE_POINTS_FILE, "points_SCHWARZ"); //Mettre non si on ne veut pas sauvegarder la température au cours du temps en des points paritculiers
   vector<point> saved_points = getenv_var<vector<point> >(VAR_SAVED_POINT, {{0.0, 0.0025}, {0.002, 0.0025}, {0.004, 0.0025}});
 
   //  Check param
@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
     cout<<"Début de l'initialisation"<<endl;
   Lap.Initialize(xmin,xmax,ymin,ymax,Nx,Ny,a,deltaT, Me, Np, Source, chevauchement, save_all_file, save_points_file, saved_points);
   Lap.InitializeCI(CI);
-  Lap.InitializeCL(CL_bas, CL_haut, CL_gauche, CL_droite, Val_CL_bas, Val_CL_haut, Val_CL_gauche, Val_CL_droite); 
+  Lap.InitializeCL(CL_bas, CL_haut, CL_gauche, CL_droite, Val_CL_bas, Val_CL_haut, Val_CL_gauche, Val_CL_droite);
   Lap.InitializeMatrix();
   if(Me == 0)
     cout<<"Fin de l'initialisation"<<endl;
