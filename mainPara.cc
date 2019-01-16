@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
 
   if (chevauchement + 1 > Ny/Np)
     throw std::runtime_error("Chevauchement times the numbers of processors must be lesser than the numbers of lines");
-
+ 
 
   EC_ClassiqueP Lap;
 
