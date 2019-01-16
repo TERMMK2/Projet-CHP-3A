@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 
 //---
   double a = 1.; //Mettre 1. si on fait les cas tests de l'énoncé et 1./(1500.*1000.) si on veut comparer avec notre TER.
-  double deltaT = getenv_var<double>(VAR_DT, 0.1);
+  double deltaT = getenv_var<double>(VAR_DT, 0.5);
   double tfinal = getenv_var<double>(VAR_T_FINAL, 10.0);
 
   const Laplacian2D::CL CL_bas = getenv_var<Laplacian2D::CL>(VAR_CL_BAS, Laplacian2D::CL::DIRICHLET);
