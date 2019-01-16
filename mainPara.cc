@@ -71,8 +71,8 @@ int main(int argc, char *argv[])
 
 //---
   double a = 1.; //Mettre 1. si on fait les cas tests de l'énoncé et 1./(1500.*1000.) si on veut comparer avec notre TER.
-  double deltaT = getenv_var<double>(VAR_DT, 0.5);
-  double tfinal = getenv_var<double>(VAR_T_FINAL, 10.0);
+  double deltaT = getenv_var<double>(VAR_DT, 0.00001);
+  double tfinal = getenv_var<double>(VAR_T_FINAL, 0.1);
 
   const Laplacian2D::CL CL_bas = getenv_var<Laplacian2D::CL>(VAR_CL_BAS, Laplacian2D::CL::DIRICHLET);
   const Laplacian2D::CL CL_haut = getenv_var<Laplacian2D::CL>(VAR_CL_HAUT, Laplacian2D::CL::DIRICHLET);
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 
   const double Val_CL_bas = getenv_var<double>(VAR_VAL_CL_BAS, 0.0);
   const double Val_CL_haut = getenv_var<double>(VAR_VAL_CL_HAUT, 0.0);
-  const double Val_CL_gauche = getenv_var<double>(VAR_VAL_CL_GAUCHE, 3000.0);
+  const double Val_CL_gauche = getenv_var<double>(VAR_VAL_CL_GAUCHE, 350.0);
   const double Val_CL_droite = getenv_var<double>(VAR_VAL_CL_DROITE, 0.0);
 
   int nb_iterations = int(ceil(tfinal / deltaT));
@@ -96,6 +96,8 @@ int main(int argc, char *argv[])
 
   string save_points_file = getenv_var<std::string>(VAR_SAVE_POINTS_FILE, "points_SCHWARZ"); //Mettre non si on ne veut pas sauvegarder la température au cours du temps en des points paritculiers
   vector<point> saved_points = getenv_var<vector<point> >(VAR_SAVED_POINT, {{0.0, 0.0025}, {0.002, 0.0025}, {0.004, 0.0025}});
+
+  int kmax = 1000;
 
   //  Check param
 
@@ -115,14 +117,14 @@ int main(int argc, char *argv[])
 
   if (chevauchement + 1 > Ny/Np)
     throw std::runtime_error("Chevauchement times the numbers of processors must be lesser than the numbers of lines");
- 
+
 
   EC_ClassiqueP Lap;
 
   //-------------------------------------------------------------------------
   if(Me ==0)
     cout<<"Début de l'initialisation"<<endl;
-  Lap.Initialize(xmin,xmax,ymin,ymax,Nx,Ny,a,deltaT, Me, Np, Source, chevauchement, save_all_file, save_points_file, saved_points);
+  Lap.Initialize(xmin,xmax,ymin,ymax,Nx,Ny,a,deltaT, Me, Np, Source, chevauchement, save_all_file, save_points_file, saved_points, kmax);
   Lap.InitializeCI(CI);
   Lap.InitializeCL(CL_bas, CL_haut, CL_gauche, CL_droite, Val_CL_bas, Val_CL_haut, Val_CL_gauche, Val_CL_droite);
   Lap.InitializeMatrix();
