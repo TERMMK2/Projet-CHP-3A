@@ -67,12 +67,12 @@ int main(int argc, char *argv[])
   const double ymin = getenv_var<double>(VAR_YMIN, 0.0);
   const double ymax = getenv_var<double>(VAR_YMAX, 1.);
 
-  const int chevauchement = getenv_var<int>(VAR_CHEVAUCHEMENT, 0);
+  const int chevauchement = getenv_var<int>(VAR_CHEVAUCHEMENT, 10);
 
 //---
   double a = 1.; //Mettre 1. si on fait les cas tests de l'énoncé et 1./(1500.*1000.) si on veut comparer avec notre TER.
-  double deltaT = getenv_var<double>(VAR_DT, 0.001);
-  double tfinal = getenv_var<double>(VAR_T_FINAL, 1.0);
+  double deltaT = getenv_var<double>(VAR_DT, 0.01);
+  double tfinal = getenv_var<double>(VAR_T_FINAL, 10.0);
 
   const Laplacian2D::CL CL_bas = getenv_var<Laplacian2D::CL>(VAR_CL_BAS, Laplacian2D::CL::DIRICHLET);
   const Laplacian2D::CL CL_haut = getenv_var<Laplacian2D::CL>(VAR_CL_HAUT, Laplacian2D::CL::DIRICHLET);
@@ -83,14 +83,14 @@ int main(int argc, char *argv[])
 
   const double Val_CL_bas = getenv_var<double>(VAR_VAL_CL_BAS, 0.0);
   const double Val_CL_haut = getenv_var<double>(VAR_VAL_CL_HAUT, 0.0);
-  const double Val_CL_gauche = getenv_var<double>(VAR_VAL_CL_GAUCHE, 3000);
+  const double Val_CL_gauche = getenv_var<double>(VAR_VAL_CL_GAUCHE, 3000.0);
   const double Val_CL_droite = getenv_var<double>(VAR_VAL_CL_DROITE, 0.0);
 
   int nb_iterations = int(ceil(tfinal / deltaT));
   //Peut prendre comme valeur "non", "polynomial", "trigonometrique" ou "instationnaire".
   Laplacian2D::Source Source = getenv_var<Laplacian2D::Source>(VAR_SOURCE, Laplacian2D::Source::POLYNOMIAL);
 
-  double CI = 1.; //  TODO param
+  double CI = 290.;
 
   string save_all_file = getenv_var<std::string>(VAR_SAVE_ALL_FILE, "SCHWARZ"); //Mettre "non" si on ne souhaite pas enregistrer la solution globale au cours du temps sous une forme lisible par paraview
 
@@ -112,6 +112,10 @@ int main(int argc, char *argv[])
 
   if (deltaT < 0.0)
     throw std::runtime_error("deltaT must be greater than 0.0");
+
+  if (chevauchement + 1 > Ny/Np)
+    throw std::runtime_error("Chevauchement times the numbers of processors must be lesser than the numbers of lines");
+
 
   EC_ClassiqueP Lap;
 
