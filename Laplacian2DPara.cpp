@@ -417,12 +417,10 @@ void Laplacian2D::SaveSol(const int iter)
   charge(_Ny, _Np, _Me, i1, iN);
   if (_Me == 0)
   {
-    vector<double> sol;
-    sol.resize(_Nx * _Ny);
+    vector<double> sol(_Nx * _Ny);
+
     for (int i = 0; i < (iN+1) * _Nx; i++)
-    {
       sol[i] = _solloc[i];
-    }
 
     for (int he = 1; he < _Np; he++)
     {

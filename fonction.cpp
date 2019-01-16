@@ -2,8 +2,8 @@
 
 void charge(int N, int Np, int Me, int &i1, int &iN)
 {
-  int q = N / Np;
-  int r = N - q * Np;
+  const int q = N / Np;
+  const int r = N - q * Np;
 
   if (Me < r)
   {
@@ -17,7 +17,7 @@ void charge(int N, int Np, int Me, int &i1, int &iN)
   }
 }
 
-std::vector<double> prodMVC(std::vector<std::vector<double>> A, std::vector<double> x, int Nx, int Ny)
+std::vector<double> prodMVC(const std::vector<std::vector<double>>& A, const std::vector<double>& x, int Nx, int Ny)
 {
   int N = Nx * Ny;
   std::vector<double> y(N);
@@ -35,7 +35,7 @@ std::vector<double> prodMVC(std::vector<std::vector<double>> A, std::vector<doub
   return y;
 }
 
-double dot(std::vector<double> u, std::vector<double> v)
+double dot(const std::vector<double>& u, const std::vector<double>& v)
 {
   //Calcul le produit scalaire entre 2 vecteurs.
 
@@ -48,7 +48,7 @@ double dot(std::vector<double> u, std::vector<double> v)
   return y;
 }
 
-std::vector<double> CG(std::vector<std::vector<double>> A, std::vector<double> b, std::vector<double> x0, double err, int kmax, int nx, int ny)
+std::vector<double> CG(const std::vector<std::vector<double>>& A, const std::vector<double>& b,const std::vector<double>& x0, double err, int kmax, int nx, int ny)
 {
   // Algorithme du gradient conjugué parallèle qui prend en argument uniquement des vecteurs locaux et renvoie un vecteur local.
 
