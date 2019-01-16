@@ -181,7 +181,6 @@ void EC_ClassiqueP::InitializeMatrix()
 void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 {
   //  Cette méthode est au coeur de la résolution du problème, elle permet d'effectuer la marche en temps
-
   MPI_Status status;
 
   int Nloc = _Nx * _Nyloc;
@@ -192,6 +191,13 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
   std::vector<double> floc_k;
   solloc_km.resize(Nloc);
   floc_k.resize(Nloc);
+
+  //  Prealocate record data
+  if (_Me == 0) {
+    _record_data.resize(nb_iterations + 1);
+    for (auto& data : _record_data)
+      data.reserve(_Nx * _Ny);
+  }
 
   double norme;
   int kmax = Nloc + 100; //Pour l'algo du GC : Pour une matrice de taille
@@ -214,8 +220,9 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
   {
 
     //-------------PARTIE CONCERNANT LA SAUVEGARDE DE LA SOLUTION------------------------------------------
-    if (_save_all_file_enabled)
-      EC_ClassiqueP::SaveSol(_save_all_file + "/sol_it_" + to_string(iter) + ".vtk");
+    if (_save_all_file_enabled) {
+      EC_ClassiqueP::SaveSol(iter);
+    }
 
     int i1, iN;
     charge(_Ny, _Np, _Me, i1, iN);
@@ -266,12 +273,14 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
     double condition_arret = 1.; //juste pour rentrer une première fois dans la boucle. Changeable en sa valeur réelle mais plus long pour pas grand chose?
     double condition_arret_loc = 0.;
-    const double epsilon = 0.000001; //valeur arbitraire pour l'instant
+    const double epsilon = 0.00000001; //valeur arbitraire pour l'instant
 
     //-------------------debut boucle schwartz--------------------------------
 
+    int k = 0;
     while (condition_arret > epsilon) //condition d'arrêt de la boucle de Schwartz
     {
+      k++;
       std::vector<double> frontiere_haut(_Nx, 0.);
       std::vector<double> frontiere_bas(_Nx, 0.);
 
@@ -308,7 +317,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
       solloc_k = CG(_LapMatloc, floc_k, solloc_km, 0.000001, kmax, _Nx, _Nyloc);
 
-      condition_arret = 0.0;
+      condition_arret = 42.0;
       condition_arret_loc = 0.0;
       std::vector<double> vect_loc(_Nx, 0.);
 
@@ -318,7 +327,8 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
         {
           vect_loc[j] = solloc_k[_Nx * (_Nyloc - 1) + j] - solloc_km[_Nx * (_Nyloc - 1) + j];
         }
-        condition_arret_loc += sqrt(dot(vect_loc, vect_loc));
+        condition_arret_loc /*+*/= sqrt(dot(vect_loc, vect_loc));
+        printf("errloc1 %f iter = %d, k = %d, proc = %d\n", condition_arret_loc, iter, k, _Me);
       }
       else if (_Me == _Np - 1)
       {
@@ -326,7 +336,8 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
         {
           vect_loc[j] = solloc_k[j] - solloc_km[j];
         }
-        condition_arret_loc += sqrt(dot(vect_loc, vect_loc));
+        condition_arret_loc /*+*/= sqrt(dot(vect_loc, vect_loc));
+        printf("errloc2 %f iter = %d, k = %d, proc = %d\n", condition_arret_loc, iter, k, _Me);
       }
       else
       {
@@ -334,17 +345,22 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
         {
           vect_loc[j] = solloc_k[j] - solloc_km[j];
         }
-        condition_arret_loc += sqrt(dot(vect_loc, vect_loc));
+        condition_arret_loc /*+*/= sqrt(dot(vect_loc, vect_loc));
         for (int j = 0; j < _Nx; j++)
         {
           vect_loc[j] = solloc_k[_Nx * (_Nyloc - 1) + j] - solloc_km[_Nx * (_Nyloc - 1) + j];
         }
         condition_arret_loc += sqrt(dot(vect_loc, vect_loc));
+        printf("errloc3 %f iter = %d, k = %d, proc = %d\n", condition_arret_loc, iter, k, _Me);
       }
+
+      
 
       if (_Np > 1)
         MPI_Allreduce(&condition_arret_loc, &condition_arret, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     }
+    printf("K = %d\n", k);
+
     //fin de boucle schwartz
 
     _solloc = solloc_k;
@@ -359,7 +375,6 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
       for (; i_barre <= 100; i_barre += 2)
         printf("-");
       printf("] %3d %%", p);
-
       for (i_barre = 0; i_barre < 59; ++i_barre)
         printf("%c", 8);
 
@@ -379,7 +394,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
   }
 }
 
-void Laplacian2D::SaveSol(const string &name_file)
+void Laplacian2D::SaveSol(const int iter)
 {
   // À refaire complètement -> à voir
 
@@ -411,18 +426,46 @@ void Laplacian2D::SaveSol(const string &name_file)
       }
     }
 
+    auto &data = _record_data[iter];
+
+    for (int i = _Ny - 1; i >= 0; i--)
+    {
+      for (int j = 0; j < _Nx; j++)
+      {
+        data.push_back(sol[j + i * _Nx]);
+      }
+    }
+  }
+  else
+  {
+    MPI_Send(&_solloc[0], (iN - i1 + 1) * _Nx, MPI_DOUBLE, 0, 100 * _Me, MPI_COMM_WORLD);
+  }
+
+}
+
+void Laplacian2D::write_record_data() const
+{
+  if (_Me != 0)
+    return;
+
+  const int size = _record_data.size();
+  
+  for (int iter = 0; iter < size; ++iter) {
     ofstream mon_flux;
-    mon_flux.open(name_file, ios::out);
+    mon_flux.open(_save_all_file + "/sol_it_" + to_string(iter) + ".vtk", ios::out);
     mon_flux << "# vtk DataFile Version 3.0" << endl
-             << "cell" << endl
-             << "ASCII" << endl
-             << "DATASET STRUCTURED_POINTS" << endl
-             << "DIMENSIONS " << _Nx << " " << _Ny << " 1" << endl
-             << "ORIGIN 0 0 0" << endl
-             << "SPACING " + to_string((_x_max - _x_min) / _Nx) + " " + to_string((_y_max - _y_min) / _Ny) + " 1" << endl
-             << "POINT_DATA " << _Nx * _Ny << endl
-             << "SCALARS sample_scalars double" << endl
-             << "LOOKUP_TABLE default" << endl;
+            << "cell" << endl
+            << "ASCII" << endl
+            << "DATASET STRUCTURED_POINTS" << endl
+            << "DIMENSIONS " << _Nx << " " << _Ny << " 1" << endl
+            << "ORIGIN 0 0 0" << endl
+            << "SPACING " + to_string((_x_max - _x_min) / _Nx) + " " + to_string((_y_max - _y_min) / _Ny) + " 1" << endl
+            << "POINT_DATA " << _Nx * _Ny << endl
+            << "SCALARS sample_scalars double" << endl
+            << "LOOKUP_TABLE default" << endl;
+
+    const auto& data = _record_data[iter];
+    int k = 0;
 
     for (int i = _Ny - 1; i >= 0; i--)
     {
@@ -432,19 +475,12 @@ void Laplacian2D::SaveSol(const string &name_file)
         // double y = i*_h_x;
         // mon_flux << sol[j + i * _Nx] - ( x*x - x )*( y*y - y ) << " ";
         // mon_flux << sol[j + i*_Nx] - ( sin(x) + cos(y) ) << " ";
-
-        mon_flux << sol[j + i * _Nx] << " ";
+        mon_flux << data[k++] << " ";
       }
       mon_flux << endl;
     }
-
     mon_flux.close();
   }
-  else
-  {
-    MPI_Send(&_solloc[0], (iN - i1 + 1) * _Nx, MPI_DOUBLE, 0, 100 * _Me, MPI_COMM_WORLD);
-  }
-
 }
 
 void EC_ClassiqueP::UpdateSecondMembre(int num_it)

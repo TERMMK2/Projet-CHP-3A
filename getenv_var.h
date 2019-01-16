@@ -10,6 +10,8 @@
 #include <vector>
 #include <utility>
 
+#include <iostream>
+
 template <typename T>
 struct str_parser {
     static T parse(const char *str, char **end_ptr);
@@ -27,6 +29,7 @@ T getenv_var(const char *var_name, const T default_value = T())
         T ret{str_parser<T>::parse(var, &end_ptr)};
         if (end_ptr == var)
             throw std::runtime_error("getenv_var go invalid var content");
+        
         return ret;
     }
 }

@@ -51,6 +51,7 @@ class Laplacian2D // pas fini de modifier
     
     std::vector<point> _saved_points;
 
+    std::vector<std::vector<double>> _record_data;
   public: // Méthodes et opérateurs de la classe
 
     Laplacian2D();// Constructeur : Initialiser _x_min, _x_max, _y_min; _y_max; _N; _h; _LapMat; _x; _y et _sol.
@@ -80,12 +81,12 @@ class Laplacian2D // pas fini de modifier
 
     virtual void IterativeSolver(int nb_iterations) = 0;   // Résout le système _LapMat * _sol = _f avec un solveur itératif.
 
-    void SaveSol(const std::string& name_file); // Écrit les solutions dans le fichier "name_file".
+    void SaveSol(const int iter);
+    void write_record_data() const;
 
     virtual void UpdateSecondMembre(int num_it) = 0;
 
     virtual std::vector<double> UpdateSchwartzCF(std::vector<double> frontiere_haut, std::vector<double> frontiere_bas) =0;
-
 };
 
 class EC_ClassiqueP : public Laplacian2D 
