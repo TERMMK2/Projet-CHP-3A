@@ -269,9 +269,10 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
     const double epsilon = 0.000001; //valeur arbitraire pour l'instant
 
     //-------------------debut boucle schwartz--------------------------------
-
+    int k=0;
     while (condition_arret > epsilon) //condition d'arrêt de la boucle de Schwartz
     {
+      k++;
       std::vector<double> frontiere_haut(_Nx, 0.);
       std::vector<double> frontiere_bas(_Nx, 0.);
 
@@ -279,7 +280,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
       {
         if (_Me == 0)
         {
-          MPI_Send(&_solloc[(_Nyloc - 1 - _chevauchement) * _Nx], _Nx, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
+          MPI_Send(&solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx], _Nx, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
           MPI_Recv(&frontiere_bas[0], _Nx, MPI_DOUBLE, 1, 1000, MPI_COMM_WORLD, &status);
         }
 
@@ -287,17 +288,17 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
         {
           if (_Me == he)
           {
-            MPI_Send(&_solloc[_chevauchement*_Nx], _Nx, MPI_DOUBLE, he - 1, 1000 * _Me, MPI_COMM_WORLD);
+            MPI_Send(&solloc_k[_chevauchement*_Nx], _Nx, MPI_DOUBLE, he - 1, 1000 * _Me, MPI_COMM_WORLD);
             MPI_Recv(&frontiere_haut[0], _Nx, MPI_DOUBLE, he - 1, 100 * (he - 1), MPI_COMM_WORLD, &status);
 
-            MPI_Send(&_solloc[(_Nyloc - 1 - _chevauchement) * _Nx], _Nx, MPI_DOUBLE, he + 1, 100 * _Me, MPI_COMM_WORLD);
+            MPI_Send(&solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx], _Nx, MPI_DOUBLE, he + 1, 100 * _Me, MPI_COMM_WORLD);
             MPI_Recv(&frontiere_bas[0], _Nx, MPI_DOUBLE, he + 1, 1000 * (he + 1), MPI_COMM_WORLD, &status);
           }
         }
 
         if (_Me == _Np - 1)
         {
-          MPI_Send(&_solloc[_chevauchement*_Nx], _Nx, MPI_DOUBLE, _Np - 2, 1000 * _Me, MPI_COMM_WORLD);
+          MPI_Send(&solloc_k[_chevauchement*_Nx], _Nx, MPI_DOUBLE, _Np - 2, 1000 * _Me, MPI_COMM_WORLD);
           MPI_Recv(&frontiere_haut[0], _Nx, MPI_DOUBLE, _Np - 2, 100 * (_Np - 2), MPI_COMM_WORLD, &status);
         }
       }
@@ -344,8 +345,11 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
       if (_Np > 1)
         MPI_Allreduce(&condition_arret_loc, &condition_arret, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+
     }
     //fin de boucle schwartz
+
 
     _solloc = solloc_k;
 
@@ -364,6 +368,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
         printf("%c", 8);
 
       fflush(stdout);
+      cout<<k<<endl;
     }
   }
 
