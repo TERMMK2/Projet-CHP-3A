@@ -1,3 +1,4 @@
+
 #include "Laplacian2DPara.h"
 
 using namespace std;
@@ -199,6 +200,10 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
       data.reserve(_Nx * _Ny);
   }
 
+  //  Prealocate frontière share buffer
+  std::vector<double> frontiere_haut(_Nx);
+  std::vector<double> frontiere_bas(_Nx);
+
   double norme;
   int kmax = Nloc + 100; //Pour l'algo du GC : Pour une matrice de taille
   //n le GC met max n étapes en théorie, comme on veut être sûr qu'il converge on prend une petite marge
@@ -272,7 +277,6 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
     //------------------------------------------------------------------------
 
     double condition_arret = 1.; //juste pour rentrer une première fois dans la boucle. Changeable en sa valeur réelle mais plus long pour pas grand chose?
-    double condition_arret_loc = 0.;
     const double epsilon = 0.000001; //valeur arbitraire pour l'instant
 
     //-------------------debut boucle schwartz--------------------------------
@@ -281,8 +285,6 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
     while (condition_arret > epsilon) //condition d'arrêt de la boucle de Schwartz
     {
       k++;
-      std::vector<double> frontiere_haut(_Nx, 0.);
-      std::vector<double> frontiere_bas(_Nx, 0.);
 
       if (_Np > 1)
       {
@@ -310,45 +312,62 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
           MPI_Recv(&frontiere_haut[0], _Nx, MPI_DOUBLE, _Np - 2, 100 * (_Np - 2), MPI_COMM_WORLD, &status);
         }
       }
+      else {
+        std::fill(frontiere_bas.begin(), frontiere_bas.end(), 0.0);
+        std::fill(frontiere_haut.begin(), frontiere_haut.end(), 0.0);
+      }
 
       floc_k = UpdateSchwartzCF(frontiere_haut, frontiere_bas);
-
       solloc_km = solloc_k;
-
       solloc_k = CG(_LapMatloc, floc_k, solloc_km, 0.000001, kmax, _Nx, _Nyloc);
 
-      condition_arret = 0.0;
-      condition_arret_loc = 0.0;
-      std::vector<double> vect_loc(_Nx, 0.);
-
+      double condition_arret_loc;
+    
       if (_Me == 0)
       {
+        double s = 0.0;
+
         for (int j = 0; j < _Nx; j++)
         {
-          vect_loc[j] = solloc_k[_Nx * (_Nyloc - 1) + j] - solloc_km[_Nx * (_Nyloc - 1) + j];
+          const int index = _Nx * (_Nyloc - 1) + j;
+          const double component = solloc_k[index] - solloc_km[index];
+          s += component * component;
         }
-        condition_arret_loc /*+*/= sqrt(dot(vect_loc, vect_loc));
+
+        condition_arret_loc = sqrt(s);
       }
       else if (_Me == _Np - 1)
       {
+        double s = 0.0;
+
         for (int j = 0; j < _Nx; j++)
         {
-          vect_loc[j] = solloc_k[j] - solloc_km[j];
+          const double component = solloc_k[j] - solloc_km[j];
+          s += component * component;
         }
-        condition_arret_loc /*+*/= sqrt(dot(vect_loc, vect_loc));
+
+        condition_arret_loc = sqrt(s);
       }
       else
       {
+        double s1 = 0.0;
+        double s2 = 0.0;
+
         for (int j = 0; j < _Nx; j++)
         {
-          vect_loc[j] = solloc_k[j] - solloc_km[j];
+          const double component = solloc_k[j] - solloc_km[j];
+          s1 += component * component;
         }
-        condition_arret_loc /*+*/= sqrt(dot(vect_loc, vect_loc));
+
         for (int j = 0; j < _Nx; j++)
         {
-          vect_loc[j] = solloc_k[_Nx * (_Nyloc - 1) + j] - solloc_km[_Nx * (_Nyloc - 1) + j];
+          const int index = _Nx * (_Nyloc - 1) + j;
+          const double component = solloc_k[index] - solloc_km[index];
+          s2 += component * component;
         }
-        condition_arret_loc += sqrt(dot(vect_loc, vect_loc));
+
+        condition_arret_loc = 
+          sqrt(s1) + sqrt(s2);
       }
 
       if (_Np > 1)
@@ -356,7 +375,6 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
     }
 
     //fin de boucle schwartz
-
 
     _solloc = solloc_k;
 
