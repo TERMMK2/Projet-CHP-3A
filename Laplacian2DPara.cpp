@@ -38,6 +38,9 @@ void Laplacian2D::Initialize(
   _Source = Source;
   _chevauchement = chevauchement;
 
+  _a_robin = 0.5;
+  _b_robin = 0.5;
+
   _save_all_file = save_all_file;
   _save_points_file = save_points_file;
 
@@ -105,7 +108,7 @@ void Laplacian2D::UpdateCL(int num_it)
   }
   else
   {
-    _Val_CL_gauche = -9000. * (t - 50.) + 500000.;
+    _Val_CL_gauche = -9000. * (t - 50.) + 50000.;
   }
 }
 
@@ -152,8 +155,8 @@ void EC_ClassiqueP::InitializeMatrix()
   {
     for (int i = 0; i < _Nx; i++)
     {
-      _LapMatloc[2][i] += gamma; //Bord haut
-      _LapMatloc[2][(_Nyloc - 1) * _Nx + i] += gamma; //Bord bas
+      _LapMatloc[2][i] += _b_robin/(_b_robin+_a_robin*_h_y)*gamma; //Bord haut
+      _LapMatloc[2][(_Nyloc - 1) * _Nx + i] += _b_robin/(_b_robin+_a_robin*_h_y)*gamma; //Bord bas
     }
   }
 
@@ -161,7 +164,7 @@ void EC_ClassiqueP::InitializeMatrix()
   {
     for (int i = 0; i < _Nx; i++)
     {
-      _LapMatloc[2][(_Nyloc - 1) * _Nx + i] += gamma; //Bord bas
+      _LapMatloc[2][(_Nyloc - 1) * _Nx + i] += _b_robin/(_b_robin+_a_robin*_h_y)*gamma;; //Bord bas
     }
   }
 
@@ -169,7 +172,7 @@ void EC_ClassiqueP::InitializeMatrix()
   {
     for (int i = 0; i < _Nx; i++)
     {
-      _LapMatloc[2][i] += gamma; //Bord haut
+      _LapMatloc[2][i] += _b_robin/(_b_robin+_a_robin*_h_y)*gamma; //Bord haut
     }
   }
 
@@ -306,60 +309,48 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
       k++;
       std::vector<double> frontiere_haut(_Nx, 0.);
       std::vector<double> frontiere_bas(_Nx, 0.);
-      std::vector<double> frontiere_haut_Neumann(_Nx, 0.);
-      std::vector<double> frontiere_bas_Neumann(_Nx, 0.);
+
+      std::vector<double> buffer_haut(_Nx, 0.);
+      std::vector<double> buffer_bas(_Nx, 0.);
 
       if (_Np > 1)
       {
         if (_Me == 0)
         {
-          MPI_Send(&solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx], _Nx, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
-          MPI_Recv(&frontiere_bas[0], _Nx, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD, &status);
-          MPI_Send(&solloc_k[(_Nyloc - 2 - _chevauchement) * _Nx], _Nx, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD); //Ligne de plus envoyée pour pouvoir calculer la derivee pour appliquer Neumann
-          MPI_Recv(&frontiere_bas_Neumann[0], _Nx, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD, &status);
-          for (int i = 0; i < _Nx; i++)
-          {
-            frontiere_bas_Neumann[i] = -(frontiere_bas_Neumann[i] - frontiere_bas[i])/_h_y;
+          for (int j=0; j<_Nx; ++j){
+            buffer_bas[j] = _a_robin*solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx + j] + _b_robin*((solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx + j] - solloc_k[(_Nyloc - 1 - _chevauchement - 1) * _Nx + j])/_h_y);
           }
+          MPI_Send(&buffer_bas[0], _Nx, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
+          MPI_Recv(&frontiere_bas[0], _Nx, MPI_DOUBLE, 1, 1000, MPI_COMM_WORLD, &status);
         }
 
         for (int he = 1; he < _Np - 1; he++)
         {
           if (_Me == he)
           {
-            MPI_Send(&solloc_k[_chevauchement*_Nx], _Nx, MPI_DOUBLE, he - 1, 0, MPI_COMM_WORLD);
-            MPI_Recv(&frontiere_haut[0], _Nx, MPI_DOUBLE, he - 1, 0, MPI_COMM_WORLD, &status);
-            MPI_Send(&solloc_k[(_chevauchement+1)*_Nx], _Nx, MPI_DOUBLE, he - 1, 1, MPI_COMM_WORLD); //Ligne de plus envoyée pour pouvoir calculer la derivee pour appliquer Neumann
-            MPI_Recv(&frontiere_haut_Neumann[0], _Nx, MPI_DOUBLE, he - 1, 1, MPI_COMM_WORLD, &status);
-            for (int i = 0; i < _Nx; i++)
-            {
-              frontiere_haut_Neumann[i] = -(frontiere_haut_Neumann[i] - frontiere_haut[i])/_h_y;
+            for (int j=0; j<_Nx; ++j){
+              buffer_haut[j] = _a_robin*solloc_k[_chevauchement*_Nx + j] + _b_robin*((solloc_k[(_chevauchement) * _Nx + j] - solloc_k[(_chevauchement+1) * _Nx + j])/_h_y);
+              buffer_bas[j] = _a_robin*solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx + j] + _b_robin*((solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx + j] - solloc_k[(_Nyloc - 1 - _chevauchement - 1) * _Nx + j])/_h_y);
             }
+            MPI_Send(&buffer_haut[0], _Nx, MPI_DOUBLE, he - 1, 1000 * _Me, MPI_COMM_WORLD);
+            MPI_Recv(&frontiere_haut[0], _Nx, MPI_DOUBLE, he - 1, 100 * (he - 1), MPI_COMM_WORLD, &status);
 
-            MPI_Send(&solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx], _Nx, MPI_DOUBLE, he + 1, 0, MPI_COMM_WORLD);
-            MPI_Recv(&frontiere_bas[0], _Nx, MPI_DOUBLE, he + 1, 0, MPI_COMM_WORLD, &status);
-            MPI_Send(&solloc_k[(_Nyloc - 2 - _chevauchement) * _Nx], _Nx, MPI_DOUBLE, he + 1, 1, MPI_COMM_WORLD); //Ligne de plus envoyée pour pouvoir calculer la derivee pour appliquer Neumann
-            MPI_Recv(&frontiere_bas_Neumann[0], _Nx, MPI_DOUBLE, he + 1, 1, MPI_COMM_WORLD, &status);
-            for (int i = 0; i < _Nx; i++)
-            {
-              frontiere_bas_Neumann[i] = -(frontiere_bas_Neumann[i] - frontiere_bas[i])/_h_y;
-            }
+            MPI_Send(&buffer_bas[0], _Nx, MPI_DOUBLE, he + 1, 100 * _Me, MPI_COMM_WORLD);
+            MPI_Recv(&frontiere_bas[0], _Nx, MPI_DOUBLE, he + 1, 1000 * (he + 1), MPI_COMM_WORLD, &status);
           }
         }
 
         if (_Me == _Np - 1)
         {
-          MPI_Send(&solloc_k[_chevauchement*_Nx], _Nx, MPI_DOUBLE, _Np - 2, 0, MPI_COMM_WORLD);
-          MPI_Recv(&frontiere_haut[0], _Nx, MPI_DOUBLE, _Np - 2, 0, MPI_COMM_WORLD, &status);
-          MPI_Send(&solloc_k[(_chevauchement+1)*_Nx], _Nx, MPI_DOUBLE, _Np - 2, 1, MPI_COMM_WORLD); //Ligne de plus envoyée pour pouvoir calculer la derivee pour appliquer Neumann
-          MPI_Recv(&frontiere_haut_Neumann[0], _Nx, MPI_DOUBLE, _Np - 2, 1, MPI_COMM_WORLD, &status);
-          for (int i = 0; i < _Nx; i++)
-          {
-            frontiere_haut_Neumann[i] = -(frontiere_haut_Neumann[i] - frontiere_haut[i])/_h_y;
+          for (int j=0; j<_Nx; ++j){
+            buffer_haut[j] = _a_robin*solloc_k[_chevauchement*_Nx + j] + _b_robin*((solloc_k[(_chevauchement)*_Nx + j] - solloc_k[(_chevauchement+1)*_Nx + j])/_h_y);
           }
+          MPI_Send(&buffer_haut[0], _Nx, MPI_DOUBLE, _Np - 2, 1000 * _Me, MPI_COMM_WORLD);
+          MPI_Recv(&frontiere_haut[0], _Nx, MPI_DOUBLE, _Np - 2, 100 * (_Np - 2), MPI_COMM_WORLD, &status);
         }
       }
-      floc_k = UpdateSchwartzCF(frontiere_haut, frontiere_bas, frontiere_haut_Neumann, frontiere_bas_Neumann);
+
+      floc_k = UpdateSchwartzCF(frontiere_haut, frontiere_bas);
 
       solloc_km = solloc_k;
 
@@ -404,6 +395,8 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
 
     }
+
+    // cout << "k = " << k << endl;
     //fin de boucle schwartz
     if (k==_kmax)
       throw std::runtime_error("la boucle de schwartz est trop longue");
@@ -649,7 +642,7 @@ void EC_ClassiqueP::UpdateSecondMembre(int num_it)
   }
 }
 
-std::vector<double> EC_ClassiqueP::UpdateSchwartzCF(std::vector<double> frontiere_haut, std::vector<double> frontiere_bas, std::vector<double> frontiere_haut_Neumann, std::vector<double> frontiere_bas_Neumann)
+std::vector<double> EC_ClassiqueP::UpdateSchwartzCF(std::vector<double> frontiere_haut, std::vector<double> frontiere_bas)
 {
   //Cette methode permet de mettre à jour floc pour prendre en compte l'évolution des conditions à la frontiere entre les procs dans la boucle de schwartz
   std::vector<double> floc_k = _floc;
@@ -660,8 +653,8 @@ std::vector<double> EC_ClassiqueP::UpdateSchwartzCF(std::vector<double> frontier
   {
     for (int j = 0; j < _Nx; j++)
     {
-      floc_k[_Nx * (_Nyloc - 1) + j] = _floc[_Nx * (_Nyloc - 1) + j] - gamma * frontiere_bas[j] - gamma * frontiere_bas_Neumann[j] * _h_y;
-      floc_k[j] = _floc[j] - gamma * frontiere_haut[j] - gamma * frontiere_haut_Neumann[j] * _h_y;
+      floc_k[_Nx * (_Nyloc - 1) + j] = _floc[_Nx * (_Nyloc - 1) + j] - gamma * frontiere_bas[j]* _h_y/(_a_robin*_h_y + _b_robin);
+      floc_k[j] = _floc[j] - gamma * frontiere_haut[j]* _h_y/(_a_robin*_h_y + _b_robin);
     }
   }
 
@@ -669,7 +662,7 @@ std::vector<double> EC_ClassiqueP::UpdateSchwartzCF(std::vector<double> frontier
   {
     for (int j = 0; j < _Nx; j++)
     {
-      floc_k[_Nx * (_Nyloc - 1) + j] = _floc[_Nx * (_Nyloc - 1) + j] - gamma * frontiere_bas[j] - gamma * frontiere_bas_Neumann[j] * _h_y;
+      floc_k[_Nx * (_Nyloc - 1) + j] = _floc[_Nx * (_Nyloc - 1) + j] - gamma * frontiere_bas[j]* _h_y/(_a_robin*_h_y + _b_robin);
     }
   }
 
@@ -677,7 +670,7 @@ std::vector<double> EC_ClassiqueP::UpdateSchwartzCF(std::vector<double> frontier
   {
     for (int j = 0; j < _Nx; j++)
     {
-      floc_k[j] = _floc[j] - gamma * frontiere_haut[j] - gamma * frontiere_haut_Neumann[j] * _h_y;
+      floc_k[j] = _floc[j] - gamma * frontiere_haut[j]* _h_y/(_a_robin*_h_y + _b_robin);
     }
   }
 

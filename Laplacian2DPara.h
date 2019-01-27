@@ -28,7 +28,7 @@ class Laplacian2D // pas fini de modifier
     enum class CL {DIRICHLET, NEUMANN, NEUMANN_NON_CONSTANT};
 
   protected: // Les attributs de la classe
-    double _x_min, _x_max, _y_min, _y_max, _h_x, _h_y, _a, _deltaT;
+    double _x_min, _x_max, _y_min, _y_max, _h_x, _h_y, _a, _deltaT, _a_robin, _b_robin;
     int _Nx, _Ny;
     int _Nyloc; // Voir _Nxloc après.
     std::vector<std::vector<double> > _LapMatloc; // matrice creuse du laplacien
@@ -87,7 +87,7 @@ class Laplacian2D // pas fini de modifier
 
     virtual void UpdateSecondMembre(int num_it) = 0;
 
-    virtual std::vector<double> UpdateSchwartzCF(std::vector<double> frontiere_haut, std::vector<double> frontiere_bas, std::vector<double> frontiere_haut_Neumann , std::vector<double> frontiere_bas_Neumann) = 0;
+    virtual std::vector<double> UpdateSchwartzCF(std::vector<double> frontiere_haut, std::vector<double> frontiere_bas) = 0;
 
 };
 
@@ -99,7 +99,7 @@ class EC_ClassiqueP : public Laplacian2D
     void InitializeMatrix();
     void IterativeSolver(int nb_iterations);
     void UpdateSecondMembre(int num_it);
-    std::vector<double> UpdateSchwartzCF(std::vector<double> frontiere_haut, std::vector<double> frontiere_bas, std::vector<double> frontiere_haut_Neumann , std::vector<double> frontiere_bas_Neumann);
+    std::vector<double> UpdateSchwartzCF(std::vector<double> frontiere_haut, std::vector<double> frontiere_bas);
 };
 
 #endif
