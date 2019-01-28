@@ -44,6 +44,9 @@
 
 #define VAR_CHEVAUCHEMENT VAR_PREFIX"chevauchement"
 
+#define _a_robin VAR_PREFIX"_a_robin"
+#define a VAR_PREFIX"diffusivite_thermique"
+
 using namespace std;
 
 
