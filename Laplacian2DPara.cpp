@@ -39,7 +39,7 @@ void Laplacian2D::Initialize(
   _chevauchement = chevauchement;
 
   _a_robin = 0.5;
-  _b_robin = 0.5;
+  _b_robin = 1. - _a_robin ;
 
   _save_all_file = save_all_file;
   _save_points_file = save_points_file;
