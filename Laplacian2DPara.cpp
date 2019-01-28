@@ -318,7 +318,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
         if (_Me == 0)
         {
           for (int j=0; j<_Nx; ++j){
-            buffer_bas[j] = _a_robin*solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx + j] + _b_robin*((solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx + j] - solloc_k[(_Nyloc - 1 - _chevauchement - 1) * _Nx + j])/_h_y);
+            buffer_bas[j] = _a_robin*solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx + j] + _b_robin*((solloc_k[(_Nyloc - 1 - _chevauchement - 1) * _Nx + j] - solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx + j])/_h_y);
           }
           MPI_Send(&buffer_bas[0], _Nx, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
           MPI_Recv(&frontiere_bas[0], _Nx, MPI_DOUBLE, 1, 1000, MPI_COMM_WORLD, &status);
@@ -329,8 +329,8 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
           if (_Me == he)
           {
             for (int j=0; j<_Nx; ++j){
-              buffer_haut[j] = _a_robin*solloc_k[_chevauchement*_Nx + j] + _b_robin*((solloc_k[(_chevauchement) * _Nx + j] - solloc_k[(_chevauchement+1) * _Nx + j])/_h_y);
-              buffer_bas[j] = _a_robin*solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx + j] + _b_robin*((solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx + j] - solloc_k[(_Nyloc - 1 - _chevauchement - 1) * _Nx + j])/_h_y);
+              buffer_haut[j] = _a_robin*solloc_k[_chevauchement*_Nx + j] + _b_robin*((solloc_k[(_chevauchement + 1) * _Nx + j] - solloc_k[(_chevauchement) * _Nx + j])/_h_y);
+              buffer_bas[j] = _a_robin*solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx + j] + _b_robin*((solloc_k[(_Nyloc - 1 - _chevauchement - 1) * _Nx + j] - solloc_k[(_Nyloc - 1 - _chevauchement) * _Nx + j])/_h_y);
             }
             MPI_Send(&buffer_haut[0], _Nx, MPI_DOUBLE, he - 1, 1000 * _Me, MPI_COMM_WORLD);
             MPI_Recv(&frontiere_haut[0], _Nx, MPI_DOUBLE, he - 1, 100 * (he - 1), MPI_COMM_WORLD, &status);
@@ -343,7 +343,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
         if (_Me == _Np - 1)
         {
           for (int j=0; j<_Nx; ++j){
-            buffer_haut[j] = _a_robin*solloc_k[_chevauchement*_Nx + j] + _b_robin*((solloc_k[(_chevauchement)*_Nx + j] - solloc_k[(_chevauchement+1)*_Nx + j])/_h_y);
+            buffer_haut[j] = _a_robin*solloc_k[_chevauchement*_Nx + j] + _b_robin*((solloc_k[(_chevauchement + 1)*_Nx + j] - solloc_k[(_chevauchement )*_Nx + j])/_h_y);
           }
           MPI_Send(&buffer_haut[0], _Nx, MPI_DOUBLE, _Np - 2, 1000 * _Me, MPI_COMM_WORLD);
           MPI_Recv(&frontiere_haut[0], _Nx, MPI_DOUBLE, _Np - 2, 100 * (_Np - 2), MPI_COMM_WORLD, &status);
