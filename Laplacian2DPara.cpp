@@ -150,32 +150,33 @@ void EC_ClassiqueP::InitializeMatrix()
   }
 
   //Modifications pour conditions de Robin dans boucle de Schwartz ############
-
-  if ((_Me > 0) and (_Me < _Np - 1))
+  if (_Np > 1)
   {
-    for (int i = 0; i < _Nx; i++)
+    if ((_Me > 0) and (_Me < _Np - 1))
     {
-      _LapMatloc[2][i] += _b_robin/(_b_robin+_a_robin*_h_y)*gamma; //Bord haut
-      _LapMatloc[2][(_Nyloc - 1) * _Nx + i] += _b_robin/(_b_robin+_a_robin*_h_y)*gamma; //Bord bas
+      for (int i = 0; i < _Nx; i++)
+      {
+        _LapMatloc[2][i] += _b_robin/(_b_robin+_a_robin*_h_y)*gamma; //Bord haut
+        _LapMatloc[2][(_Nyloc - 1) * _Nx + i] += _b_robin/(_b_robin+_a_robin*_h_y)*gamma; //Bord bas
+      }
+    }
+
+    if (_Me == 0)
+    {
+      for (int i = 0; i < _Nx; i++)
+      {
+        _LapMatloc[2][(_Nyloc - 1) * _Nx + i] += _b_robin/(_b_robin+_a_robin*_h_y)*gamma;; //Bord bas
+      }
+    }
+
+    if (_Me == _Np - 1)
+    {
+      for (int i = 0; i < _Nx; i++)
+      {
+        _LapMatloc[2][i] += _b_robin/(_b_robin+_a_robin*_h_y)*gamma; //Bord haut
+      }
     }
   }
-
-  if (_Me == 0)
-  {
-    for (int i = 0; i < _Nx; i++)
-    {
-      _LapMatloc[2][(_Nyloc - 1) * _Nx + i] += _b_robin/(_b_robin+_a_robin*_h_y)*gamma;; //Bord bas
-    }
-  }
-
-  if (_Me == _Np - 1)
-  {
-    for (int i = 0; i < _Nx; i++)
-    {
-      _LapMatloc[2][i] += _b_robin/(_b_robin+_a_robin*_h_y)*gamma; //Bord haut
-    }
-  }
-
   //###########################################################################
 
   if (_CL_gauche == CL::NEUMANN or _CL_gauche == CL::NEUMANN_NON_CONSTANT)
