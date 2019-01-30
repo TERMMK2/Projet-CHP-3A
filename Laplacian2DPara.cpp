@@ -232,6 +232,14 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
   int kmax = Nloc + 100; //Pour l'algo du GC : Pour une matrice de taille
   //n le GC met max n étapes en théorie, comme on veut être sûr qu'il converge on prend une petite marge
 
+  //  Prealocate record data
+  if (_Me == 0)
+  {
+    _record_data.resize(nb_iterations + 1);
+    for (auto &data : _record_data)
+      data.reserve(_Nx * _Ny);
+  }
+
   //
   std::vector<double> frontiere_haut(_Nx);
   std::vector<double> frontiere_bas(_Nx);
