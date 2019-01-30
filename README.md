@@ -22,3 +22,4 @@ CHP_saved_points=(x0,y0), (x1, y1), ...
 CHP_save_all_file
 CHP_save_points_file
 CHP_chevauchement
+CHP_a_robin

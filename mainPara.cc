@@ -44,11 +44,10 @@
 
 #define VAR_CHEVAUCHEMENT VAR_PREFIX"chevauchement"
 
-#define _a_robin VAR_PREFIX"_a_robin"
-#define a VAR_PREFIX"diffusivite_thermique"
+#define VAR_A_ROBIN VAR_PREFIX"a_robin"
+//#define a VAR_PREFIX"diffusivite_thermique"
 
 using namespace std;
-
 
 int main(int argc, char *argv[])
 {
@@ -76,6 +75,8 @@ int main(int argc, char *argv[])
   double a = 1.; //Mettre 1. si on fait les cas tests de l'énoncé et 1./(1500.*1000.) si on veut comparer avec notre TER.
   double deltaT = getenv_var<double>(VAR_DT, 0.001);
   double tfinal = getenv_var<double>(VAR_T_FINAL, 1.0);
+
+  const double a_robin = getenv_var<double>(VAR_A_ROBIN, 0.25);  
 
   const Laplacian2D::CL CL_bas = getenv_var<Laplacian2D::CL>(VAR_CL_BAS, Laplacian2D::CL::DIRICHLET);
   const Laplacian2D::CL CL_haut = getenv_var<Laplacian2D::CL>(VAR_CL_HAUT, Laplacian2D::CL::DIRICHLET);
@@ -127,7 +128,7 @@ int main(int argc, char *argv[])
   //-------------------------------------------------------------------------
   if(Me ==0)
     cout<<"Début de l'initialisation"<<endl;
-  Lap.Initialize(xmin,xmax,ymin,ymax,Nx,Ny,a,deltaT, Me, Np, Source, chevauchement, save_all_file, save_points_file, saved_points, kmax);
+  Lap.Initialize(xmin,xmax,ymin,ymax,Nx,Ny,a, a_robin, deltaT, Me, Np, Source, chevauchement, save_all_file, save_points_file, saved_points, kmax);
   Lap.InitializeCI(CI);
   Lap.InitializeCL(CL_bas, CL_haut, CL_gauche, CL_droite, Val_CL_bas, Val_CL_haut, Val_CL_gauche, Val_CL_droite);
   Lap.InitializeMatrix();

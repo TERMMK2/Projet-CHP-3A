@@ -14,7 +14,7 @@ Laplacian2D::~Laplacian2D()
 void Laplacian2D::Initialize(
     double x_min, double x_max,
     double y_min, double y_max,
-    int Nx, int Ny, double a,
+    int Nx, int Ny, double a, double a_robin,
     double deltaT, int Me, int Np,
     Source Source, int chevauchement,
     string save_all_file, string save_points_file,
@@ -38,7 +38,7 @@ void Laplacian2D::Initialize(
   _Source = Source;
   _chevauchement = chevauchement;
 
-  _a_robin = 0.5;
+  _a_robin = a_robin;
   _b_robin = 1. - _a_robin ;
 
   _save_all_file = save_all_file;

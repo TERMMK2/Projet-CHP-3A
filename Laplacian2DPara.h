@@ -68,7 +68,7 @@ class Laplacian2D // pas fini de modifier
     void Initialize(
       double x_min, double x_max,
       double y_min, double y_max,
-      int Nx, int Ny, double a,
+      int Nx, int Ny, double a, double a_robin,
       double deltaT, int Me, int Np,
       Source Source, int chevauchement,
       std::string save_all_file, std::string _save_points_file,
