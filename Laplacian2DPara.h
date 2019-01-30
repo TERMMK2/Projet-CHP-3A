@@ -50,6 +50,7 @@ class Laplacian2D // pas fini de modifier
     bool _save_points_file_enabled;
 
     std::vector<point> _saved_points;
+    std::vector<std::vector<double>> _record_data;
 
     int _kmax; //nombre d'itération de SCHWARZ max.
 
