@@ -232,6 +232,13 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
   int kmax = Nloc + 100; //Pour l'algo du GC : Pour une matrice de taille
   //n le GC met max n étapes en théorie, comme on veut être sûr qu'il converge on prend une petite marge
 
+  //
+  std::vector<double> frontiere_haut(_Nx);
+  std::vector<double> frontiere_bas(_Nx);
+
+  std::vector<double> buffer_haut(_Nx);
+  std::vector<double> buffer_bas(_Nx);
+
   //Sauvegarde d'un point ou plusieurs points particulier au cours du temps:------------------------------------------------------------------------------------
 
   ofstream flux_pts;
@@ -308,11 +315,11 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
     while ((condition_arret > epsilon) && (k<_kmax)) //condition d'arrêt de la boucle de Schwartz
     {
       k++;
-      std::vector<double> frontiere_haut(_Nx, 0.);
-      std::vector<double> frontiere_bas(_Nx, 0.);
+      //std::vector<double> frontiere_haut(_Nx, 0.);
+      //std::vector<double> frontiere_bas(_Nx, 0.);
 
-      std::vector<double> buffer_haut(_Nx, 0.);
-      std::vector<double> buffer_bas(_Nx, 0.);
+      //std::vector<double> buffer_haut(_Nx, 0.);
+      //std::vector<double> buffer_bas(_Nx, 0.);
 
       if (_Np > 1)
       {
@@ -349,6 +356,11 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
           MPI_Send(&buffer_haut[0], _Nx, MPI_DOUBLE, _Np - 2, 1000 * _Me, MPI_COMM_WORLD);
           MPI_Recv(&frontiere_haut[0], _Nx, MPI_DOUBLE, _Np - 2, 100 * (_Np - 2), MPI_COMM_WORLD, &status);
         }
+      }
+      else
+      {
+        std::fill(frontiere_bas.begin(), frontiere_bas.end(), 0.0);
+        std::fill(frontiere_haut.begin(), frontiere_haut.end(), 0.0);
       }
 
       floc_k = UpdateSchwartzCF(frontiere_haut, frontiere_bas);
