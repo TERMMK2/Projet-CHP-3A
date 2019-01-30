@@ -355,7 +355,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
       solloc_km = solloc_k;
 
-      solloc_k = CG(_LapMatloc, floc_k, solloc_km, 0.000001, kmax, _Nx, _Nyloc);
+      CG(solloc_k, _LapMatloc, floc_k, solloc_km, 0.000001, kmax, _Nx, _Nyloc);
 
       condition_arret = 0.0;
       condition_arret_loc = 0.0;
