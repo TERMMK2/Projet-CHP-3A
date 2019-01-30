@@ -58,9 +58,9 @@ void Laplacian2D::Initialize(
     iN += _chevauchement;
     _Nyloc = iN - i1 + 1;
   }
-  else
+  else {
     _Nyloc = iN - i1 + 1;
-
+  }
 
   //à modifier potentiellement pour savesol et save_points
 }
@@ -317,9 +317,10 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
         std::fill(frontiere_haut.begin(), frontiere_haut.end(), 0.0);
       }
 
-      floc_k = UpdateSchwartzCF(frontiere_haut, frontiere_bas);
+      UpdateSchwartzCF(floc_k, frontiere_haut, frontiere_bas);
       solloc_km = solloc_k;
-      solloc_k = CG(_LapMatloc, floc_k, solloc_km, 0.000001, kmax, _Nx, _Nyloc);
+
+      CG(solloc_k, _LapMatloc, floc_k, solloc_km, 0.000001, kmax, _Nx, _Nyloc);
 
       double condition_arret_loc;
     
@@ -393,6 +394,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
       fflush(stdout);
     }
+
   }
 
   // if ((_save_points_file != "non") and (_Me == 0))
@@ -634,12 +636,11 @@ void EC_ClassiqueP::UpdateSecondMembre(int num_it)
   }
 }
 
-std::vector<double> EC_ClassiqueP::UpdateSchwartzCF(std::vector<double> frontiere_haut, std::vector<double> frontiere_bas)
+void EC_ClassiqueP::UpdateSchwartzCF(std::vector<double>& floc_k, const std::vector<double> &frontiere_haut, const std::vector<double> &frontiere_bas)
 {
   //Cette methode permet de mettre à jour floc pour prendre en compte l'évolution des conditions à la frontiere entre les procs dans la boucle de schwartz
-  std::vector<double> floc_k = _floc;
-
   double gamma = -_a * _deltaT / (_h_y * _h_y);
+  floc_k = _floc;
 
   if ((_Me > 0) and (_Me < _Np - 1))
   {
@@ -666,37 +667,5 @@ std::vector<double> EC_ClassiqueP::UpdateSchwartzCF(std::vector<double> frontier
     }
   }
 
-  return floc_k;
 }
 
-/*
-      string name_file2 = "comparaison.txt";
-
-      ofstream flux_compa;
-      flux_compa.open(name_file2, ios::out);
-      flux_compa << "# vtk DataFile Version 3.0" << endl
-	       << "cell" << endl
-	       << "ASCII" << endl
-	       << "DATASET STRUCTURED_POINTS" << endl
-	       << "DIMENSIONS " << _Nx << " " << _Ny << " 1" << endl
-	       << "ORIGIN 0 0 0" << endl
-	       << "SPACING " + to_string((_x_max-_x_min)/_Nx)+ " " + to_string((_y_max-_y_min)/_Ny) +" 1" << endl
-	       << "POINT_DATA " << _Nx*_Ny << endl
-	       << "SCALARS sample_scalars double" << endl
-	       << "LOOKUP_TABLE default" << endl;
-
-      for(int i=_Ny-1; i>=0; i--)
-	{
-	  for(int j=0; j<_Nx; j++)
-	    {
-	      double x = j*_h_y;
-	      double y = i*_h_x;
-
-	      //flux_compa << sol[j + i*_Nx] - ( x*x - x )*( y*y - y ) << " ";
-	      //flux_compa << sol[j + i*_Nx] - ( sin(x) + cos(y) )<<" ";
-	    }
-	  flux_compa << endl;
-	}
-      flux_compa.close();
-      */
-//Cette partie commentée nous a permis de comparer les résultats théoriques et numériques des solutions pour les cas avec un terme source polynomial et trigonometrique.

@@ -86,7 +86,7 @@ class Laplacian2D // pas fini de modifier
 
     virtual void UpdateSecondMembre(int num_it) = 0;
 
-    virtual std::vector<double> UpdateSchwartzCF(std::vector<double> frontiere_haut, std::vector<double> frontiere_bas) =0;
+    virtual void UpdateSchwartzCF(std::vector<double>& output, const std::vector<double> &frontiere_haut, const std::vector<double> &frontiere_bas) = 0;
 };
 
 class EC_ClassiqueP : public Laplacian2D 
@@ -97,7 +97,7 @@ class EC_ClassiqueP : public Laplacian2D
     void InitializeMatrix();
     void IterativeSolver(int nb_iterations);
     void UpdateSecondMembre(int num_it);
-    std::vector<double> UpdateSchwartzCF(std::vector<double> frontiere_haut, std::vector<double> frontiere_bas);
+    void UpdateSchwartzCF(std::vector<double>& output, const std::vector<double> &frontiere_haut, const std::vector<double> &frontiere_bas);
 };
 
 #endif

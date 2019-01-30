@@ -17,14 +17,16 @@ void charge(int N, int Np, int Me, int &i1, int &iN)
   }
 }
 
-std::vector<double> prodMVC(const std::vector<std::vector<double>>& A, const std::vector<double>& x, int Nx, int Ny)
+void prodMVC(std::vector<double>& output, const std::vector<std::vector<double>>& A, const std::vector<double>& x, int Nx, int Ny)
 {
   int N = Nx * Ny;
-  std::vector<double> y(N);
+
+  if (output.size() != N)
+    output.resize(N);
 
   for (int i = 0; i < N; i++)
   {
-    y[i] =
+    output[i] =
         A[0][i] * x[i - Nx]
       + A[1][i] * x[i - 1]
       + A[2][i] * x[i]
@@ -32,7 +34,6 @@ std::vector<double> prodMVC(const std::vector<std::vector<double>>& A, const std
       + A[4][i] * x[i + Nx];
   }
 
-  return y;
 }
 
 double dot(const std::vector<double>& u, const std::vector<double>& v)
@@ -48,14 +49,14 @@ double dot(const std::vector<double>& u, const std::vector<double>& v)
   return y;
 }
 
-std::vector<double> CG(const std::vector<std::vector<double>>& A, const std::vector<double>& b,const std::vector<double>& x0, double err, int kmax, int nx, int ny)
+void CG(std::vector<double> &output, const std::vector<std::vector<double>> &A, const std::vector<double> &b, const std::vector<double> &x0, double err, int kmax, int nx, int ny)
 {
   // Algorithme du gradient conjugué parallèle qui prend en argument uniquement des vecteurs locaux et renvoie un vecteur local.
 
   int k = 0;
 
   double norm_r, nr_carre, nr2_carre;
-  std::vector<double> w, r, r_1, p, d, x;
+  std::vector<double> w, r, r_1, p, d;//, x;
 
   int N = nx * ny;
 
@@ -64,9 +65,9 @@ std::vector<double> CG(const std::vector<std::vector<double>>& A, const std::vec
   p.resize(N);
   d.resize(N);
 
-  x = x0;
+  output = x0;//x = x0;
 
-  w = prodMVC(A, x, nx, ny);
+  prodMVC(w, A, output, nx, ny);
 
   for (int i = 0; i < N; i++)
   {
@@ -79,13 +80,13 @@ std::vector<double> CG(const std::vector<std::vector<double>>& A, const std::vec
 
   while ((norm_r > err) and (k < kmax))
   {
-    d = prodMVC(A, p, nx, ny);
+    prodMVC(d, A, p, nx, ny);
 
     double alpha = nr_carre / dot(p, d);
 
     for (int i = 0; i < N; i++)
     {
-      x[i] += alpha * p[i];
+      output[i] += alpha * p[i];
       r[i] -= alpha * d[i]; //rk devient r(k+1)
     }
 
@@ -104,5 +105,5 @@ std::vector<double> CG(const std::vector<std::vector<double>>& A, const std::vec
     k++;
   }
 
-  return x;
+  //return x;
 }
