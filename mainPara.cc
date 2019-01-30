@@ -146,7 +146,8 @@ int main(int argc, char *argv[])
 
   if (Me == 0)
   {
-    cout << "Le prog a mis " << t * 0.000001 << " secondes a s'effectuer" << endl << "Writing Data...";
+    cout  << "Le prog a mis " << t * 0.000001 << " secondes a s'effectuer" << endl 
+          << "Writing Data..." << endl;
     Lap.write_record_data();
   }
 
