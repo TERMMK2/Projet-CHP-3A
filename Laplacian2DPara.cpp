@@ -257,7 +257,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
     //-------------PARTIE CONCERNANT LA SAUVEGARDE DE LA SOLUTION------------------------------------------
     if (_save_all_file_enabled)
-      EC_ClassiqueP::SaveSol(_save_all_file + "/sol_it_" + to_string(iter) + ".vtk");
+      EC_ClassiqueP::SaveSol(iter);
 
     int i1, iN;
     charge(_Ny, _Np, _Me, i1, iN);
@@ -447,7 +447,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
   }
 }
 
-void Laplacian2D::SaveSol(const string &name_file)
+void Laplacian2D::SaveSol(const int iter)
 {
   // À refaire complètement -> à voir
 
@@ -457,12 +457,10 @@ void Laplacian2D::SaveSol(const string &name_file)
   charge(_Ny, _Np, _Me, i1, iN);
   if (_Me == 0)
   {
-    vector<double> sol;
-    sol.resize(_Nx * _Ny);
-    for (int i = 0; i < (iN+1) * _Nx; i++)
-    {
+    vector<double> sol(_Nx * _Ny);
+
+    for (int i = 0; i < (iN + 1) * _Nx; i++)
       sol[i] = _solloc[i];
-    }
 
     for (int he = 1; he < _Np; he++)
     {
@@ -473,14 +471,39 @@ void Laplacian2D::SaveSol(const string &name_file)
 
       MPI_Recv(&sol_temp[0], (he_iN - he_i1 + 1) * _Nx, MPI_DOUBLE, he, 100 * he, MPI_COMM_WORLD, &status);
 
-      for (int i = he_i1 * _Nx; i < (he_iN+1) * _Nx; i++)
+      for (int i = he_i1 * _Nx; i < (he_iN + 1) * _Nx; i++)
       {
         sol[i] = sol_temp[i - he_i1 * _Nx];
       }
     }
 
+    auto &data = _record_data[iter];
+
+    for (int i = _Ny - 1; i >= 0; i--)
+    {
+      for (int j = 0; j < _Nx; j++)
+      {
+        data.push_back(sol[j + i * _Nx]);
+      }
+    }
+  }
+  else
+  {
+    MPI_Send(&_solloc[0], (iN - i1 + 1) * _Nx, MPI_DOUBLE, 0, 100 * _Me, MPI_COMM_WORLD);
+  }
+}
+
+void Laplacian2D::write_record_data() const
+{
+  if (_Me != 0)
+    return;
+
+  const int size = _record_data.size();
+
+  for (int iter = 0; iter < size; ++iter)
+  {
     ofstream mon_flux;
-    mon_flux.open(name_file, ios::out);
+    mon_flux.open(_save_all_file + "/sol_it_" + to_string(iter) + ".vtk", ios::out);
     mon_flux << "# vtk DataFile Version 3.0" << endl
              << "cell" << endl
              << "ASCII" << endl
@@ -492,6 +515,9 @@ void Laplacian2D::SaveSol(const string &name_file)
              << "SCALARS sample_scalars double" << endl
              << "LOOKUP_TABLE default" << endl;
 
+    const auto &data = _record_data[iter];
+    int k = 0;
+
     for (int i = _Ny - 1; i >= 0; i--)
     {
       for (int j = 0; j < _Nx; j++)
@@ -500,19 +526,12 @@ void Laplacian2D::SaveSol(const string &name_file)
         // double y = i*_h_x;
         // mon_flux << sol[j + i * _Nx] - ( x*x - x )*( y*y - y ) << " ";
         // mon_flux << sol[j + i*_Nx] - ( sin(x) + cos(y) ) << " ";
-
-        mon_flux << sol[j + i * _Nx] << " ";
+        mon_flux << data[k++] << " ";
       }
       mon_flux << endl;
     }
-
     mon_flux.close();
   }
-  else
-  {
-    MPI_Send(&_solloc[0], (iN - i1 + 1) * _Nx, MPI_DOUBLE, 0, 100 * _Me, MPI_COMM_WORLD);
-  }
-
 }
 
 void EC_ClassiqueP::UpdateSecondMembre(int num_it)
