@@ -373,6 +373,8 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
       if (_Np > 1)
         MPI_Allreduce(&condition_arret_loc, &condition_arret, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      else
+        condition_arret = 0.0;
     }
 
     //fin de boucle schwartz
