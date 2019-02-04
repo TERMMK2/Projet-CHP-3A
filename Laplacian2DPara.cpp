@@ -355,7 +355,7 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
       solloc_km = solloc_k;
 
-      solloc_k = CG(_LapMatloc, floc_k, solloc_km, 0.000001, kmax, _Nx, _Nyloc);
+      solloc_k = CG(_LapMatloc, floc_k, solloc_km, 0.00000001, kmax, _Nx, _Nyloc);
 
       condition_arret = 0.0;
       condition_arret_loc = 0.0;
@@ -393,8 +393,6 @@ void EC_ClassiqueP::IterativeSolver(int nb_iterations)
 
       if (_Np > 1)
         MPI_Allreduce(&condition_arret_loc, &condition_arret, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-
     }
 
     // cout << "k = " << k << endl;
@@ -526,49 +524,49 @@ void EC_ClassiqueP::UpdateSecondMembre(int num_it)
   {
     for (int j = 0; j < _Nx; j++)
     {
-      _floc[j] = _solloc[j] - gamma * _Val_CL_haut;
+      _floc[j] = _floc[j] - gamma * _Val_CL_haut;
     }
   }
   if ((_CL_bas == CL::DIRICHLET) and (_Me == _Np - 1)) //Condition de température en bas
   {
     for (int j = 0; j < _Nx; j++)
     {
-      _floc[_Nx * (_Nyloc - 1) + j] = _solloc[_Nx * (_Nyloc - 1) + j] - gamma * _Val_CL_bas;
+      _floc[_Nx * (_Nyloc - 1) + j] = _floc[_Nx * (_Nyloc - 1) + j] - gamma * _Val_CL_bas;
     }
   }
   if (_CL_gauche == CL::DIRICHLET) //Condition de température à gauche
   {
     for (int i = 0; i < _Nyloc; i++)
     {
-      _floc[i * _Nx] = _solloc[i * _Nx] - beta * _Val_CL_gauche;
+      _floc[i * _Nx] = _floc[i * _Nx] - beta * _Val_CL_gauche;
     }
   }
   if (_CL_droite == CL::DIRICHLET) //Condition de température à droite
   {
     for (int i = 0; i < _Nyloc; i++)
     {
-      _floc[(i + 1) * _Nx - 1] = _solloc[(i + 1) * _Nx - 1] - beta * _Val_CL_droite; //i*_Nx+(_Nx-1)
+      _floc[(i + 1) * _Nx - 1] = _floc[(i + 1) * _Nx - 1] - beta * _Val_CL_droite; //i*_Nx+(_Nx-1)
     }
   }
   if ((_CL_haut == CL::NEUMANN) and (_Me == 0)) //Condition de flux en haut
   {
     for (int j = 0; j < _Nx; j++)
     {
-      _floc[j] = _solloc[j] - gamma * _Val_CL_haut * _h_y;
+      _floc[j] = _floc[j] - gamma * _Val_CL_haut * _h_y;
     }
   }
   if ((_CL_bas == CL::NEUMANN) and (_Me == _Np - 1)) //Condition de flux en bas
   {
     for (int j = 0; j < _Nx; j++)
     {
-      _floc[_Nx * (_Nyloc - 1) + j] = _solloc[_Nx * (_Nyloc - 1) + j] - gamma * _Val_CL_bas * _h_y;
+      _floc[_Nx * (_Nyloc - 1) + j] = _floc[_Nx * (_Nyloc - 1) + j] - gamma * _Val_CL_bas * _h_y;
     }
   }
   if (_CL_gauche == CL::NEUMANN) //Condition de flux à gauche
   {
     for (int i = 0; i < _Nyloc; i++)
     {
-      _floc[i * _Nx] = _solloc[i * _Nx] - beta * _Val_CL_gauche * _h_x;
+      _floc[i * _Nx] = _floc[i * _Nx] - beta * _Val_CL_gauche * _h_x;
     }
   }
   if (_CL_gauche == CL::NEUMANN_NON_CONSTANT) //Condition de flux à gauche
@@ -576,14 +574,14 @@ void EC_ClassiqueP::UpdateSecondMembre(int num_it)
     Laplacian2D::UpdateCL(num_it);
     for (int i = 0; i < _Nyloc; i++)
     {
-      _floc[i * _Nx] = _solloc[i * _Nx] - beta * _Val_CL_gauche * _h_x;
+      _floc[i * _Nx] = _floc[i * _Nx] - beta * _Val_CL_gauche * _h_x;
     }
   }
   if (_CL_droite == CL::NEUMANN) //Condition de flux à droite
   {
     for (int i = 0; i < _Nyloc; i++)
     {
-      _floc[(i + 1) * _Nx - 1] = _solloc[(i + 1) * _Nx - 1] - beta * _Val_CL_droite * _h_x; //i*_Nx+(_Nx-1)
+      _floc[(i + 1) * _Nx - 1] = _floc[(i + 1) * _Nx - 1] - beta * _Val_CL_droite * _h_x; //i*_Nx+(_Nx-1)
     }
   }
   if (_Source == Source::TRIGONOMETRIQUE)
@@ -594,7 +592,7 @@ void EC_ClassiqueP::UpdateSecondMembre(int num_it)
       {
         double x = (j % _Nx) * _h_x;
         double y = 0.;
-        _floc[j] = _solloc[j] - gamma * (sin(x) + cos(y));
+        _floc[j] = _floc[j] - gamma * (sin(x) + cos(y));
       }
     }
     if (_Me == _Np - 1)
@@ -603,20 +601,20 @@ void EC_ClassiqueP::UpdateSecondMembre(int num_it)
       {
         double x = ((_Nx * (_Nyloc - 1) + j) % _Nx) * _h_x;
         double y = _y_max;
-        _floc[_Nx * (_Nyloc - 1) + j] = _solloc[_Nx * (_Nyloc - 1) + j] - gamma * (sin(x) + cos(y));
+        _floc[_Nx * (_Nyloc - 1) + j] = _floc[_Nx * (_Nyloc - 1) + j] - gamma * (sin(x) + cos(y));
       }
     }
     for (int i = 0; i < _Nyloc; i++) // A gauche
     {
       double x = 0.;
       double y = ((i * _Nx) / _Nx + i1) * _h_y;
-      _floc[i * _Nx] = _solloc[i * _Nx] - beta * (sin(x) + cos(y));
+      _floc[i * _Nx] = _floc[i * _Nx] - beta * (sin(x) + cos(y));
     }
     for (int i = 0; i < _Nyloc; i++) // A droite
     {
       double x = _x_max;
       double y = (((i + 1) * _Nx - 1) / _Nx + i1) * _h_y;
-      _floc[(i + 1) * _Nx - 1] = _solloc[(i + 1) * _Nx - 1] - beta * (sin(x) + cos(y));
+      _floc[(i + 1) * _Nx - 1] = _floc[(i + 1) * _Nx - 1] - beta * (sin(x) + cos(y));
     }
   }
 
