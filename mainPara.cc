@@ -59,8 +59,8 @@ int main(int argc, char *argv[])
   MPI_Comm_size(MPI_COMM_WORLD, &Np); // get totalnodes
   MPI_Comm_rank(MPI_COMM_WORLD, &Me);
 
-  const int Nx = getenv_var<int>(VAR_NX, 100);
-  const int Ny = getenv_var<int>(VAR_NY, 100);
+  const int Nx = getenv_var<int>(VAR_NX, 200);
+  const int Ny = getenv_var<int>(VAR_NY, 200);
 
   // Truc machin biduletest
 
@@ -69,14 +69,14 @@ int main(int argc, char *argv[])
   const double ymin = getenv_var<double>(VAR_YMIN, 0.0);
   const double ymax = getenv_var<double>(VAR_YMAX, 1.);
 
-  const int chevauchement = getenv_var<int>(VAR_CHEVAUCHEMENT, 10);
+  const int chevauchement = getenv_var<int>(VAR_CHEVAUCHEMENT, 5);
 
 //---
   double a = 1.; //Mettre 1. si on fait les cas tests de l'énoncé et 1./(1500.*1000.) si on veut comparer avec notre TER.
   double deltaT = getenv_var<double>(VAR_DT, 0.1);
   double tfinal = getenv_var<double>(VAR_T_FINAL, 10.0);
 
-  const double a_robin = getenv_var<double>(VAR_A_ROBIN, 0.25);
+  const double a_robin = getenv_var<double>(VAR_A_ROBIN, 0.85);
 
   const Laplacian2D::CL CL_bas = getenv_var<Laplacian2D::CL>(VAR_CL_BAS, Laplacian2D::CL::DIRICHLET);
   const Laplacian2D::CL CL_haut = getenv_var<Laplacian2D::CL>(VAR_CL_HAUT, Laplacian2D::CL::DIRICHLET);
@@ -96,9 +96,9 @@ int main(int argc, char *argv[])
 
   double CI = 0.;
 
-  string save_all_file = getenv_var<std::string>(VAR_SAVE_ALL_FILE, "SCHWARZ"); //Mettre "non" si on ne souhaite pas enregistrer la solution globale au cours du temps sous une forme lisible par paraview
+  string save_all_file = getenv_var<std::string>(VAR_SAVE_ALL_FILE, "non"); //Mettre "non" si on ne souhaite pas enregistrer la solution globale au cours du temps sous une forme lisible par paraview
 
-  string save_points_file = getenv_var<std::string>(VAR_SAVE_POINTS_FILE, "points_SCHWARZ"); //Mettre non si on ne veut pas sauvegarder la température au cours du temps en des points paritculiers
+  string save_points_file = getenv_var<std::string>(VAR_SAVE_POINTS_FILE, "non"); //Mettre non si on ne veut pas sauvegarder la température au cours du temps en des points paritculiers
   vector<point> saved_points = getenv_var<vector<point> >(VAR_SAVED_POINT, {{0.0, 0.0025}, {0.002, 0.0025}, {0.004, 0.0025}});
 
   int kmax = 1000;
